@@ -436,7 +436,7 @@ class PageFilterSpells extends PageFilterBase {
 		});
 		this._areaTypeFilter = new Filter({
 			header: "Area Style",
-			items: ["ST", "MT", "R", "N", "C", "Y", "H", "L", "S", "Q", "W"],
+			items: ["ST", "MT", "R", "N", "C", "Y", "H", "E", "L", "S", "Q", "W"],
 			displayFn: Parser.spAreaTypeToFull,
 			itemSortFn: null,
 		});
@@ -502,6 +502,7 @@ class PageFilterSpells extends PageFilterBase {
 
 		s._fAreaTags = [...(s.areaTags || [])];
 		if (s.range.type === "line" && !s._fAreaTags.includes("L")) s._fAreaTags.push("L");
+		if (s.range.type === "emanation" && !s._fAreaTags.includes("E")) s._fAreaTags.push("E");
 
 		s._fAffectsCreatureType = s.affectsCreatureType || [...Parser.MON_TYPES];
 	}

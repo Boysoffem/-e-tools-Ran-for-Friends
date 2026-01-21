@@ -1768,6 +1768,7 @@ Parser.SPELL_AREA_TYPE_TO_FULL = {
 	"L": "Line",
 	"H": "Hemisphere",
 	"W": "Wall",
+	"E": "Emanation",
 };
 Parser.spAreaTypeToFull = function (type) {
 	return Parser._parse_aToB(Parser.SPELL_AREA_TYPE_TO_FULL, type);
