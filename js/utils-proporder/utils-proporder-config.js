@@ -221,6 +221,7 @@ const PROPORDER_MONSTER = [
 	"tokenHref",
 	"tokenCredit",
 	"tokenCustom",
+	"tokenHref3d",
 	"soundClip",
 
 	...PROPS_FOUNDRY_DATA_INLINE,
@@ -282,6 +283,7 @@ const PROPORDER_MONSTER__COPY_MOD = [
 ];
 const PROPORDER_MONSTER_TEMPLATE = [
 	"name",
+	"alias",
 
 	"source",
 	"page",
@@ -1392,6 +1394,7 @@ const PROPORDER_VEHICLE = [
 	"tokenHref",
 	"tokenCredit",
 	"tokenCustom",
+	"tokenHref3d",
 
 	"hasToken",
 	"hasFluff",
@@ -1822,6 +1825,7 @@ const PROPORDER_OBJECT = [
 	"tokenHref",
 	"tokenCredit",
 	"tokenCustom",
+	"tokenHref3d",
 
 	"altArt",
 
