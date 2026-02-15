@@ -2518,6 +2518,7 @@ export const PROPORDER_PROP_TO_LIST = {
 	"item": PROPORDER_ITEM,
 	"foundryItem": PROPORDER_FOUNDRY_GENERIC,
 	"baseitem": PROPORDER_ITEM,
+	"foundryBaseItem": PROPORDER_FOUNDRY_GENERIC,
 	"magicvariant": PROPORDER_MAGICVARIANT,
 	"foundryMagicvariant": PROPORDER_FOUNDRY_GENERIC,
 	"itemGroup": PROPORDER_ITEM,
