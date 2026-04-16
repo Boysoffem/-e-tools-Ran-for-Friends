@@ -1,4 +1,8 @@
-# 5e.tools
+# 5e.tools – Ran for Friends
+
+This is a custom fork of 5e.tools for friends, based on the official 5e.tools project.
+
+---
 
 Visit the [main site](https://5e.tools/index.html) or go to the unofficial GitHub [mirror](index.html).
 
