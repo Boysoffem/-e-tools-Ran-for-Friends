@@ -12,10 +12,14 @@ window.addEventListener("load", async () => {
 	]);
 	ExcludeUtil.pInitialise().then(null); // don't await, as this is only used for search
 
-	const hash = window.location.hash.slice(1);
+	const url = new URL(window.location.href);
+	const hash = url.hash.slice(1);
+	const params = new URLSearchParams(url.search);
+	const playerName = params.get("name") || null;
+	const autoConnect = params.get("auto") === "1" || params.get("auto") === "true";
 
 	const views = new InitTrackerPlayerViews();
-	views.init({hash});
+	views.init({hash, playerName, autoConnect});
 
 	Hist.replaceHistoryHash("");
 
@@ -31,7 +35,7 @@ class InitTrackerPlayerViews extends BaseComponent {
 		TabUiUtil.decorate(this, {isInitMeta: true});
 	}
 
-	init ({hash}) {
+	init ({hash, playerName, autoConnect}) {
 		const {v0: tokenV0, v1: tokenV1} = this.constructor._getTokens({hash});
 
 		const wrpContent = es(`#page-content`).empty();
@@ -47,7 +51,7 @@ class InitTrackerPlayerViews extends BaseComponent {
 		const viewV1 = new InitTrackerPlayerViewV1({parent: this});
 		const viewV0 = new InitTrackerPlayerViewV0({parent: this});
 
-		viewV1.render({tabMeta: tabMetaV1, token: tokenV1});
+		viewV1.render({tabMeta: tabMetaV1, token: tokenV1, playerName, autoConnect});
 		viewV0.render({tabMeta: tabMetaV0, token: tokenV0});
 	}
 
@@ -98,7 +102,7 @@ class InitTrackerPlayerViewV1 {
 		this._parent = parent;
 	}
 
-	render ({tabMeta, token}) {
+	render ({tabMeta, token, playerName, autoConnect}) {
 		const view = new InitiativeTrackerPlayerMessageHandlerPageV1(tabMeta.wrpTab);
 
 		const iptPlayerName = ee`<input class="ve-form-control ve-code">`
@@ -110,6 +114,7 @@ class InitTrackerPlayerViewV1 {
 			.disableSpellcheck();
 
 		if (token) iptServerToken.val(token);
+		if (playerName) iptPlayerName.val(playerName);
 
 		const btnConnect = ee`<button class="ve-btn ve-btn-xs ve-btn-primary">Connect</button>`
 			.onn("click", async () => {
@@ -161,6 +166,12 @@ class InitTrackerPlayerViewV1 {
 				<div class="initp__rows"></div>
 			</div>
 		</div>`;
+
+		if (token && playerName && autoConnect) {
+			btnConnect.trigger("click");
+		} else if (token && !playerName) {
+			iptPlayerName.focus();
+		}
 
 		const eleBody = e_(document.body);
 		eleBody
