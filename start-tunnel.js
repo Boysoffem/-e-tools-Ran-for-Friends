@@ -6,9 +6,109 @@ const LOCAL_HOST = '127.0.0.1';
 const PROXY_PORT = 3001;
 const TARGET_PORT = 3000;
 const NGROK_CMD = process.platform === 'win32' ? 'ngrok.exe' : 'ngrok';
+const RESTART_DELAY_MS = Number(process.env.NGROK_RESTART_DELAY_MS || 5000);
+const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 15000);
+const SERVER_READY_TIMEOUT_MS = Number(process.env.SERVER_READY_TIMEOUT_MS || 60000);
+const SERVER_READY_POLL_MS = Number(process.env.SERVER_READY_POLL_MS || 1500);
+const HEALTH_CHECK_INTERVAL_MS = Number(process.env.HEALTH_CHECK_INTERVAL_MS || 10000);
 
 let ngrokProcess;
 let publishedUrl;
+let isShuttingDown = false;
+let restartTimer;
+let healthTimer;
+let wasUpstreamHealthy;
+
+const upstreamAgent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 1000,
+  maxSockets: 64,
+  maxFreeSockets: 16,
+});
+
+function checkUpstreamReady() {
+  return new Promise((resolve) => {
+    const req = http.request(
+      {
+        hostname: LOCAL_HOST,
+        port: TARGET_PORT,
+        path: '/5etools.html',
+        method: 'HEAD',
+        timeout: 3000,
+      },
+      (res) => {
+        res.resume();
+        resolve(true);
+      },
+    );
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
+
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
+
+async function waitForUpstream() {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < SERVER_READY_TIMEOUT_MS) {
+    const isReady = await checkUpstreamReady();
+    if (isReady) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, SERVER_READY_POLL_MS));
+  }
+
+  return false;
+}
+
+function scheduleNgrokRestart(reason) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  if (restartTimer) {
+    clearTimeout(restartTimer);
+  }
+
+  console.log(`Restarting ngrok in ${RESTART_DELAY_MS}ms (${reason})...`);
+  restartTimer = setTimeout(() => {
+    publishedUrl = undefined;
+    startNgrok();
+  }, RESTART_DELAY_MS);
+}
+
+function startUpstreamMonitor() {
+  if (healthTimer) {
+    clearInterval(healthTimer);
+  }
+
+  healthTimer = setInterval(async () => {
+    if (isShuttingDown) {
+      return;
+    }
+
+    const healthy = await checkUpstreamReady();
+    if (wasUpstreamHealthy === undefined) {
+      wasUpstreamHealthy = healthy;
+      return;
+    }
+
+    if (healthy && !wasUpstreamHealthy) {
+      console.log(`Upstream recovered at http://${LOCAL_HOST}:${TARGET_PORT}`);
+    }
+
+    if (!healthy && wasUpstreamHealthy) {
+      console.warn(`Upstream is down at http://${LOCAL_HOST}:${TARGET_PORT} (tunnel may return 502 until recovered).`);
+    }
+
+    wasUpstreamHealthy = healthy;
+  }, HEALTH_CHECK_INTERVAL_MS);
+}
 
 function printTunnelLinks(url) {
   console.log('\n✓ Tunnel URL:', url);
@@ -46,19 +146,39 @@ function startNgrok() {
 
   ngrokProcess.on('error', (err) => {
     console.error('Failed to start ngrok:', err.message);
-    process.exit(1);
+    scheduleNgrokRestart('spawn error');
   });
 
   ngrokProcess.on('exit', (code, signal) => {
-    console.log(`ngrok process exited with ${signal || code}`);
-    process.exit(code ?? (signal ? 0 : 1));
+    ngrokProcess = undefined;
+    if (isShuttingDown) {
+      console.log(`ngrok process exited with ${signal || code}`);
+      return;
+    }
+
+    console.log(`ngrok exited unexpectedly with ${signal || code}`);
+    scheduleNgrokRestart('unexpected exit');
   });
 }
 
 function cleanup() {
+  isShuttingDown = true;
+
+  if (restartTimer) {
+    clearTimeout(restartTimer);
+    restartTimer = undefined;
+  }
+
+  if (healthTimer) {
+    clearInterval(healthTimer);
+    healthTimer = undefined;
+  }
+
   if (ngrokProcess && !ngrokProcess.killed) {
     ngrokProcess.kill();
   }
+
+  upstreamAgent.destroy();
 }
 
 const server = http.createServer((req, res) => {
@@ -71,6 +191,8 @@ const server = http.createServer((req, res) => {
     port: TARGET_PORT,
     path: req.url === '/' ? '/5etools.html' : req.url,
     method: req.method,
+    agent: upstreamAgent,
+    timeout: UPSTREAM_TIMEOUT_MS,
     headers: Object.assign({}, req.headers, {
       'bypass-tunnel-reminder': 'true',
       'X-Bypass-Tunnel-Reminder': 'true',
@@ -88,6 +210,10 @@ const server = http.createServer((req, res) => {
     clientRes.pipe(res);
   });
 
+  clientReq.on('timeout', () => {
+    clientReq.destroy(new Error(`Upstream timed out after ${UPSTREAM_TIMEOUT_MS}ms`));
+  });
+
   req.pipe(clientReq);
   clientReq.on('error', (e) => {
     console.error('Proxy error:', e);
@@ -100,7 +226,22 @@ process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
 process.on('exit', cleanup);
 
-server.listen(PROXY_PORT, LOCAL_HOST, () => {
+server.listen(PROXY_PORT, LOCAL_HOST, async () => {
   console.log(`Local proxy server running on port ${PROXY_PORT}`);
+
+  wasUpstreamHealthy = await checkUpstreamReady();
+  if (wasUpstreamHealthy) {
+    console.log(`Upstream is healthy at http://${LOCAL_HOST}:${TARGET_PORT}`);
+  } else {
+    console.warn(`Upstream is currently down at http://${LOCAL_HOST}:${TARGET_PORT}`);
+  }
+
+  const upstreamReady = await waitForUpstream();
+  if (!upstreamReady) {
+    console.warn(`Server on ${LOCAL_HOST}:${TARGET_PORT} did not become ready within ${SERVER_READY_TIMEOUT_MS}ms.`);
+    console.warn('Tunnel will still start and retry in the background; start-server.bat if needed.');
+  }
+
+  startUpstreamMonitor();
   startNgrok();
 });
