@@ -102,10 +102,11 @@ export class TagTestUrlLookup {
 			"citation",
 		]) {
 			[
-				...(await DataLoader.pCacheAndGetAllBrew(prop)),
-				...(await DataLoader.pCacheAndGetAllPrerelease(prop)),
 				...(await DataLoader.pCacheAndGetAllSite(prop)),
+				...(await DataLoader.pCacheAndGetAllPrerelease(prop)),
+				...(await DataLoader.pCacheAndGetAllBrew(prop)),
 			]
+				.reverse()
 				.forEach(ent => this._addEntityItem(ent, prop));
 		}
 
@@ -115,12 +116,14 @@ export class TagTestUrlLookup {
 		//   indexed.
 		for (const prop of [
 			"feat",
+			"legendaryGroup",
 		]) {
 			[
-				...(await DataLoader.pCacheAndGetAllBrew(prop)),
-				...(await DataLoader.pCacheAndGetAllPrerelease(prop)),
 				...(await DataLoader.pCacheAndGetAllSite(prop)),
+				...(await DataLoader.pCacheAndGetAllPrerelease(prop)),
+				...(await DataLoader.pCacheAndGetAllBrew(prop)),
 			]
+				.reverse()
 				.filter(ent => ent._versionBase_isVersion)
 				.forEach(ent => this._addEntityItem(ent, prop));
 		}
@@ -134,10 +137,11 @@ export class TagTestUrlLookup {
 			"crochetPatternFluff",
 		]) {
 			[
-				...(await DataLoader.pCacheAndGetAllBrew(prop)),
-				...(await DataLoader.pCacheAndGetAllPrerelease(prop)),
 				...(await DataLoader.pCacheAndGetAllSite(prop)),
+				...(await DataLoader.pCacheAndGetAllPrerelease(prop)),
+				...(await DataLoader.pCacheAndGetAllBrew(prop)),
 			]
+				.reverse()
 				.forEach(ent => this._addEntityItem(ent, prop));
 		}
 	}
@@ -146,10 +150,11 @@ export class TagTestUrlLookup {
 		const tmpClassIxFeatures = {};
 
 		[
-			...(await DataLoader.pCacheAndGetAllBrew("class")),
-			...(await DataLoader.pCacheAndGetAllPrerelease("class")),
 			...(await DataLoader.pCacheAndGetAllSite("class")),
+			...(await DataLoader.pCacheAndGetAllPrerelease("class")),
+			...(await DataLoader.pCacheAndGetAllBrew("class")),
 		]
+			.reverse()
 			.forEach(cls => {
 				cls.name = cls.name.toLowerCase();
 				cls.source = (cls.source || Parser.SRC_PHB).toLowerCase();
@@ -167,10 +172,11 @@ export class TagTestUrlLookup {
 			});
 
 		[
-			...(await DataLoader.pCacheAndGetAllBrew("subclass")),
-			...(await DataLoader.pCacheAndGetAllPrerelease("subclass")),
 			...(await DataLoader.pCacheAndGetAllSite("subclass")),
+			...(await DataLoader.pCacheAndGetAllPrerelease("subclass")),
+			...(await DataLoader.pCacheAndGetAllBrew("subclass")),
 		]
+			.reverse()
 			.forEach(sc => {
 				sc.shortName = (sc.shortName || sc.name).toLowerCase();
 				sc.source = (sc.source || sc.classSource).toLowerCase();

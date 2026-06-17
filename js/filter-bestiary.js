@@ -45,6 +45,26 @@ class PageFilterBestiary extends PageFilterBase {
 	static _getAbilitySaveDisplayText (abl) { return `${abl.uppercaseFirst()} Save`; }
 	// endregion
 
+	/* -------------------------------------------- */
+
+	// (Exposed for Plutonium use)
+	_getMiscFilterDeselFn () {
+		return (it) => ["Adventure NPC", "Reprinted"].includes(it);
+	}
+
+	_getMiscFilter () {
+		return new Filter({
+			header: "Miscellaneous",
+			items: ["Familiar", ...Object.keys(Parser.MON_MISC_TAG_TO_FULL), "Bonus Actions", "Lair Actions", "Legendary", "Mythic", "Adventure NPC", "Spellcaster", ...Object.values(Parser.ATB_ABV_TO_FULL).map(it => `${PageFilterBestiary.MISC_FILTER_SPELLCASTER}${it}`), "Regional Effects", "Reactions", "Reprinted", "Swarm", "Has Variants", "Modified Copy", "Has Alternate Token", "Has Info", "Has Images", "Has Token", "Has Recharge", "Legacy", "AC from Item(s)", "AC from Natural Armor", "AC from Unarmored Defense", "Summoned by Spell", "Summoned by Class", "Reduced Threat", "Has Gear", "Has Equipment"],
+			displayFn: (it) => Parser.monMiscTagToFull(it).uppercaseFirst(),
+			deselFn: this._getMiscFilterDeselFn(),
+			itemSortFn: PageFilterBestiary.ascSortMiscFilter,
+			isMiscFilter: true,
+		});
+	}
+
+	/* -------------------------------------------- */
+
 	constructor (opts) {
 		super(opts);
 
@@ -223,14 +243,7 @@ class PageFilterBestiary extends PageFilterBase {
 				"Frightful Presence", "Multiattack", "Parry", "Swallow", "Teleport", "Tentacles",
 			],
 		});
-		this._miscFilter = new Filter({
-			header: "Miscellaneous",
-			items: ["Familiar", ...Object.keys(Parser.MON_MISC_TAG_TO_FULL), "Bonus Actions", "Lair Actions", "Legendary", "Mythic", "Adventure NPC", "Spellcaster", ...Object.values(Parser.ATB_ABV_TO_FULL).map(it => `${PageFilterBestiary.MISC_FILTER_SPELLCASTER}${it}`), "Regional Effects", "Reactions", "Reprinted", "Swarm", "Has Variants", "Modified Copy", "Has Alternate Token", "Has Info", "Has Images", "Has Token", "Has Recharge", "Legacy", "AC from Item(s)", "AC from Natural Armor", "AC from Unarmored Defense", "Summoned by Spell", "Summoned by Class", "Reduced Threat"],
-			displayFn: (it) => Parser.monMiscTagToFull(it).uppercaseFirst(),
-			deselFn: (it) => ["Adventure NPC", "Reprinted"].includes(it),
-			itemSortFn: PageFilterBestiary.ascSortMiscFilter,
-			isMiscFilter: true,
-		});
+		this._miscFilter = this._getMiscFilter();
 		this._spellcastingTypeFilter = new Filter({
 			header: "Spellcasting Type",
 			items: ["F", "I", "P", "S", "O", "CA", "CB", "CC", "CD", "CP", "CR", "CS", "CL", "CW"],
@@ -271,11 +284,10 @@ class PageFilterBestiary extends PageFilterBase {
 
 		this._mutateForFilters_commonSources(mon);
 
+		this._mutateForFilters_ac(mon);
 		this._mutateForFilters_speed(mon);
 		this._mutateForFilters_environment(mon);
 
-		mon._fAc = (mon.ac || []).map(it => it.special ? null : (it.ac || it)).filter(it => it !== null);
-		if (!mon._fAc.length) mon._fAc = null;
 		mon._fHp = mon.hp?.average ?? null;
 		if (mon.alignment) {
 			const tempAlign = typeof mon.alignment[0] === "object"
@@ -337,10 +349,10 @@ class PageFilterBestiary extends PageFilterBase {
 		if (this._hasFluff(mon)) mon._fMisc.push("Has Info");
 		if (this._hasFluffImages(mon)) mon._fMisc.push("Has Images");
 		if (this._hasRecharge(mon)) mon._fMisc.push("Has Recharge");
-		if (mon._versionBase_isVersion) mon._fMisc.push("Is Variant");
 		if (mon.summonedBySpell) mon._fMisc.push("Summoned by Spell");
 		if (mon.summonedByClass) mon._fMisc.push("Summoned by Class");
 		if (mon._copy_templates?.some(({name, source}) => name === "Reduced Threat" && source === Parser.SRC_TYP)) mon._fMisc.push("Reduced Threat");
+		if (mon.gear?.length) mon._fMisc.push("Has Gear");
 
 		const spellcasterMeta = this._getSpellcasterMeta(mon);
 		if (spellcasterMeta) {
@@ -352,6 +364,19 @@ class PageFilterBestiary extends PageFilterBase {
 		else mon._fLanguageTags = ["None"];
 
 		mon._fEquipment = this._getEquipmentList(mon);
+		if (mon._fEquipment?.length) mon._fMisc.push("Has Equipment");
+	}
+
+	static _mutateForFilters_ac (mon) {
+		const filterAc = (mon.ac || [])
+			.map(acItem => {
+				if (acItem.special) return null;
+				const acNumber = acItem.ac || acItem;
+				if (typeof acNumber !== "number") return null;
+				return acNumber;
+			})
+			.filter(val => val != null);
+		mon._fAc = filterAc.length ? filterAc : null;
 	}
 
 	static _F_SPEED_PROP_MAPPING = Object.fromEntries(Parser.SPEED_MODES.map(prop => [prop, `_fSpeed${prop.uppercaseFirst()}`]));
@@ -381,9 +406,10 @@ class PageFilterBestiary extends PageFilterBase {
 			.filter(prop => {
 				const v = mon.speed[prop];
 				if (!v) return false;
-				if (typeof v !== "number") return false;
-				maxSpeed = Math.max(maxSpeed, v);
-				mon[this._F_SPEED_PROP_MAPPING[prop]] = v;
+				const num = v.number || v;
+				if (typeof num !== "number") return false;
+				maxSpeed = Math.max(maxSpeed, num);
+				mon[this._F_SPEED_PROP_MAPPING[prop]] = num;
 				return true;
 			});
 
@@ -479,7 +505,7 @@ class PageFilterBestiary extends PageFilterBase {
 		}
 
 		for (const trait of (mon.trait || [])) {
-			if (!trait.name.toLowerCase().startsWith("special equipment")) continue;
+			if (!trait.name?.toLowerCase().startsWith("special equipment")) continue;
 			walker.walk(
 				trait.entries,
 				{
@@ -519,7 +545,7 @@ class PageFilterBestiary extends PageFilterBase {
 		this._speedFilterClimb.addItem(mon._fSpeedClimb);
 		this._speedFilterFly.addItem(mon._fSpeedFly);
 		this._speedFilterSwim.addItem(mon._fSpeedSwim);
-		(mon.ac || []).forEach(it => this._acFilter.addItem(it.ac || it));
+		this._acFilter.addItem(mon._fAc);
 		if (mon.hp?.average) this._averageHpFilter.addItem(mon.hp.average);
 		this._tagFilter.addItem(mon._pTypes.tags);
 		this._sidekickTypeFilter.addItem(mon._pTypes.typeSidekick);
@@ -535,7 +561,6 @@ class PageFilterBestiary extends PageFilterBase {
 		this._spellSlotLevelFilter.addItem(mon._fSpellSlotLevels);
 		this._spellKnownFilter.addItem(mon._fSpellsKnown);
 		this._equipmentFilter.addItem(mon._fEquipment);
-		if (mon._versionBase_isVersion) this._miscFilter.addItem("Is Variant");
 		this._miscFilter.addItem(mon._fMisc);
 		this._damageTypeFilterBase.addItem(mon.damageTags);
 		this._damageTypeFilterLegendary.addItem(mon.damageTagsLegendary);
@@ -686,6 +711,7 @@ class ModalFilterBestiary extends ModalFilterBase {
 			modalTitle: `Creature${opts.isRadio ? "" : "s"}`,
 			pageFilter: new PageFilterBestiary(),
 			fnSort: PageFilterBestiary.sortMonsters,
+			previewButtonHandler: new ListUiPreviewButtonHandlerStatsFluff({page: UrlUtil.PG_BESTIARY}),
 		});
 	}
 
@@ -752,7 +778,7 @@ class ModalFilterBestiary extends ModalFilterBase {
 			},
 		);
 
-		ListUiUtil.bindPreviewButton(UrlUtil.PG_BESTIARY, this._allData, listItem, btnShowHidePreview);
+		this._previewButtonHandler.bindPreviewButton({entity: mon, listItem, btnShowHidePreview});
 
 		return listItem;
 	}
