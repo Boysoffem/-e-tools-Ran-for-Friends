@@ -1763,7 +1763,7 @@
 						],
 						[
 							"Oil",
-							"quart"
+							"1 quart"
 						],
 						[
 							"Vinegar",
@@ -1824,7 +1824,7 @@
 						],
 						[
 							"Oil",
-							"quart"
+							"1 quart"
 						],
 						[
 							"Soy Sauce",
@@ -41143,7 +41143,7 @@
 			"reqAttune": true,
 			"wondrous": true,
 			"entries": [
-				"Head office grants you the use of a unique item known as an occultant abacus (sometimes just referred to as an occultant), whose beads resemble tiny skulls.",
+				"Head Office grants you the use of a unique item known as an occultant abacus (sometimes just referred to as an occultant), whose beads resemble tiny skulls.",
 				{
 					"type": "entries",
 					"name": "Read the Kill",
