@@ -19,6 +19,7 @@ scratch/
 sitemap.xml
 analytics.json
 analytics.local.backup.json
+.maintenance-state.json
 *.DS_Store
 Thumbs.db
 .rsync-filter
