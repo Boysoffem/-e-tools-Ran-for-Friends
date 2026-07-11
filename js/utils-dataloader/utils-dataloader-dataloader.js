@@ -58,7 +58,20 @@ class DataTypeLoader {
 
 	_isBrewAvailable () { return typeof BrewUtil2 !== "undefined"; }
 
-	async _pPrePopulate ({data, isPrerelease, isBrew}) { /* Implement as required */ }
+	async _pPrePopulate ({data, isPrerelease, isBrew}) {
+		await this._pPrePopulate_common({data, isPrerelease, isBrew});
+		await this._pPrePopulate_custom({data, isPrerelease, isBrew});
+	}
+
+	async _pPrePopulate_common ({data, isPrerelease, isBrew}) {
+		// region Spells
+		if (isPrerelease) Renderer.spell.prePopulateHoverPrerelease(data);
+		if (isBrew) Renderer.spell.prePopulateHoverBrew(data);
+		Renderer.spell.prePopulateHover(data);
+		// endregion
+	}
+
+	async _pPrePopulate_custom ({data, isPrerelease, isBrew}) { /* Implement as required */ }
 
 	async pGetSiteData ({pageClean, sourceClean}) {
 		if (DataLoaderConst.isSourceAllNonSite(sourceClean)) return {};
@@ -259,7 +272,7 @@ class DataTypeLoaderItemMastery extends DataTypeLoaderSingleSource {
 
 	_filename = "items-base.json";
 
-	async _pPrePopulate ({data, isPrerelease, isBrew}) {
+	async _pPrePopulate_custom ({data, isPrerelease, isBrew}) {
 		// Ensure properties are loaded
 		await Renderer.item.pGetSiteUnresolvedRefItems();
 		Renderer.item.addPrereleaseBrewPropertiesAndTypesFrom({data});
@@ -518,12 +531,6 @@ class DataTypeLoaderCustomSpell extends DataTypeLoaderMultiSource {
 	static PAGE = UrlUtil.PG_SPELLS;
 
 	_prop = "spell";
-
-	async _pPrePopulate ({data, isPrerelease, isBrew}) {
-		Renderer.spell.prePopulateHover(data);
-		if (isPrerelease) Renderer.spell.prePopulateHoverPrerelease(data);
-		if (isBrew) Renderer.spell.prePopulateHoverBrew(data);
-	}
 }
 
 class DataTypeLoaderCustomSpellFluff extends DataTypeLoaderMultiSource {
@@ -813,7 +820,7 @@ class DataTypeLoaderCustomItem extends DataTypeLoader {
 		};
 	}
 
-	async _pPrePopulate ({data, isPrerelease, isBrew}) {
+	async _pPrePopulate_custom ({data, isPrerelease, isBrew}) {
 		Renderer.item.addPrereleaseBrewPropertiesAndTypesFrom({data});
 	}
 
@@ -1505,9 +1512,21 @@ export class DataLoader {
 	 * @param [isCopy] If a copy, rather than the original entity, should be returned.
 	 * @param [isRequired] If an error should be thrown on a missing entity.
 	 * @param [isSilent] If errors should not be thrown on a missing implementation.
+	 * @param [isOptimisticPrereleaseBrew] If failing to load a prerelease/brew source should not mark that source as "unavailable".
 	 * @param [lockToken2] Post-process lock token for recursive calls.
 	 */
-	static async pCacheAndGet (page, source, hash, {isCopy = false, isRequired = false, isSilent = false, lockToken2} = {}) {
+	static async pCacheAndGet (
+		page,
+		source,
+		hash,
+		{
+			isCopy = false,
+			isRequired = false,
+			isSilent = false,
+			isOptimisticPrereleaseBrew = false,
+			lockToken2,
+		} = {},
+	) {
 		const fromCache = this.getFromCache(page, source, hash, {isCopy, _isReturnSentinel: true});
 		if (fromCache === DataLoaderConst.ENTITY_NULL) return this._getVerifiedRequiredEntity({pageClean: page, sourceClean: source, hashClean: hash, ent: null, isRequired});
 		if (fromCache) return fromCache;
@@ -1519,10 +1538,10 @@ export class DataLoader {
 		const dataLoader = this._pCache_getDataTypeLoader({pageClean, isSilent});
 		if (!dataLoader) return this._getVerifiedRequiredEntity({pageClean, sourceClean, hashClean, ent: null, isRequired});
 
-		const isUnavailablePrerelease = await this._PrereleasePreloader._pPreloadMissing({parent: this, sourceClean});
+		const isUnavailablePrerelease = await this._PrereleasePreloader._pPreloadMissing({parent: this, sourceClean, isOptimisticPrereleaseBrew});
 		if (isUnavailablePrerelease) return this._getVerifiedRequiredEntity({pageClean, sourceClean, hashClean, ent: null, isRequired});
 
-		const isUnavailableBrew = await this._BrewPreloader._pPreloadMissing({parent: this, sourceClean});
+		const isUnavailableBrew = await this._BrewPreloader._pPreloadMissing({parent: this, sourceClean, isOptimisticPrereleaseBrew});
 		if (isUnavailableBrew) return this._getVerifiedRequiredEntity({pageClean, sourceClean, hashClean, ent: null, isRequired});
 
 		await dataLoader.pLoadDependencies({lockToken2});
@@ -1567,9 +1586,10 @@ export class DataLoader {
 		/**
 		 * @param parent
 		 * @param sourceClean
+		 * @param isOptimisticPrereleaseBrew
 		 * @return {Promise<boolean>} `true` if the source does not exist and could not be loaded, false otherwise.
 		 */
-		static async _pPreloadMissing ({parent, sourceClean}) {
+		static async _pPreloadMissing ({parent, sourceClean, isOptimisticPrereleaseBrew = false}) {
 			if (this._isExistingMiss({parent, sourceClean})) return true;
 
 			if (!this._isPossibleSource({parent, sourceClean})) return false;
@@ -1577,7 +1597,7 @@ export class DataLoader {
 
 			const brewUtil = this._getBrewUtil();
 			if (!brewUtil) {
-				this._setExistingMiss({parent, sourceClean});
+				if (!isOptimisticPrereleaseBrew) this._setExistingMiss({parent, sourceClean});
 				return true;
 			}
 
@@ -1585,7 +1605,7 @@ export class DataLoader {
 
 			const urlBrew = await this._pGetSourceUrl({parent, sourceClean});
 			if (!urlBrew) {
-				this._setExistingMiss({parent, sourceClean});
+				if (!isOptimisticPrereleaseBrew) this._setExistingMiss({parent, sourceClean});
 				return true;
 			}
 

@@ -92,13 +92,31 @@ class _RenderBestiaryImplBase {
 
 			case "legendary":
 			case "mythic": {
-				const cpy = MiscUtil.copy(entries)
-					.map(it => {
-						if (it.name && it.entries) it.type ||= "item";
-						return it;
+				// Split runs of "rendered" (i.e., spellcasting entries) vs. "other" (i.e., likely hanging list items)
+				//   into groupings, and handle each appropriately.
+				const listGroups = [];
+
+				MiscUtil.copy(entries)
+					.forEach(ent => {
+						if (ent.rendered) return listGroups.push({rendered: ent.rendered});
+
+						if (ent.name && ent.entries) ent.type ||= "item";
+
+						if (!listGroups.length || listGroups.at(-1).rendered) {
+							listGroups.push({type: "list", style: "list-hang-notitle", items: []});
+						}
+						listGroups.at(-1).items.push(ent);
 					});
-				const toRender = {type: "list", style: "list-hang-notitle", items: cpy};
-				renderer.setFirstSection(true).recursiveRender(toRender, renderStack, {depth: depth});
+
+				listGroups.forEach(group => {
+					if (group.rendered) {
+						renderStack.push(group.rendered);
+						return;
+					}
+
+					renderer.setFirstSection(true).recursiveRender(group, renderStack, {depth: depth});
+				});
+
 				break;
 			}
 
@@ -138,7 +156,7 @@ class _RenderBestiaryImplBase {
 		return {
 			htmlPtIsExcluded: this._getCommonHtmlParts_isExcluded({mon, isSkipExcludesRender}),
 			htmlPtName: this._getCommonHtmlParts_name({mon, isInlinedToken}),
-			htmlPtSizeTypeAlignment: this._getCommonHtmlParts_sizeTypeAlignment({mon, isInlinedToken}),
+			htmlPtSizeTypeAlignment: this._getCommonHtmlParts_sizeTypeAlignment({mon, renderer, isInlinedToken}),
 
 			htmlPtHitPoints: this._getCommonHtmlParts_hitPoints({mon, isInlinedToken}),
 			htmlPtsResources: this._getCommonHtmlParts_resources({mon, isInlinedToken}),
@@ -189,8 +207,8 @@ class _RenderBestiaryImplBase {
 		);
 	}
 
-	_getCommonHtmlParts_sizeTypeAlignment ({mon, isInlinedToken}) {
-		return `<tr><td colspan="6"><div ${isInlinedToken ? `class="ve-stats__wrp-avoid-token"` : ""}><i>${Renderer.monster.getTypeAlignmentPart(mon)}</i></div></td></tr>`;
+	_getCommonHtmlParts_sizeTypeAlignment ({mon, renderer, isInlinedToken}) {
+		return `<tr><td colspan="6"><div ${isInlinedToken ? `class="ve-stats__wrp-avoid-token"` : ""}><i>${Renderer.monster.getTypeAlignmentPart(mon, {renderer})}</i></div></td></tr>`;
 	}
 
 	/* ----- */
