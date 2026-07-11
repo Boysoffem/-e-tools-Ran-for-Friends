@@ -7,6 +7,10 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
+		"start": "node server.js",
+		"tunnel": "node start-tunnel.js",
+		"stack": "powershell -ExecutionPolicy Bypass -File ./auto-restart-tunnel.ps1",
+		"audit:images": "node scripts/audit-images.mjs",
 		"version-bump": "npm version -m \"chore(version): bump\"",
 		"gen": "node node/generate-all.js",
 		"gen:search-index": "node node/generate-search-index.js",
