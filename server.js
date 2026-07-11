@@ -1,6 +1,8 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import { exec } from 'child_process';
@@ -8,6 +10,21 @@ import { trackVisit, getAnalytics } from './analytics.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+function getAsciiFallbackName(name) {
+    return name
+        .replace(/æ/gi, m => (m === 'Æ' ? 'Ae' : 'ae'))
+        .replace(/œ/gi, m => (m === 'Œ' ? 'Oe' : 'oe'))
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function getFallbackFilePath(filePath) {
+    const parsed = path.parse(filePath);
+    const altBaseName = getAsciiFallbackName(parsed.name);
+    if (!altBaseName || altBaseName === parsed.name) return null;
+    return path.join(parsed.dir, `${altBaseName}${parsed.ext}`);
+}
 
 function checkForUpdates() {
     exec('"C:\\Program Files\\Git\\bin\\git.exe" pull', { cwd: __dirname }, (err, stdout, stderr) => {
@@ -155,7 +172,13 @@ function generateAnalyticsHTML(analytics) {
 
 const server = http.createServer((req, res) => {
     const parsedUrl = new URL(req.url, 'http://localhost');
-    const pathname = parsedUrl.pathname;
+    let pathname = parsedUrl.pathname;
+    // Decode encoded URL segments so files with spaces/special chars resolve correctly.
+    try {
+        pathname = decodeURIComponent(pathname);
+    } catch {
+        // Keep original pathname if decoding fails.
+    }
 
     // Handle analytics endpoint
     if (pathname === '/analytics') {
@@ -218,15 +241,103 @@ const server = http.createServer((req, res) => {
 
     fs.readFile(filePath, (err, data) => {
         if (err) {
-            if (err.code === 'ENOENT') {
-                res.writeHead(404);
-                res.end('File not found');
-            } else {
+            if (err.code !== 'ENOENT') {
                 res.writeHead(500);
                 res.end('Server error');
+                return;
             }
+
+            // Some image packs use ASCII filenames where source data contains accented names.
+            const fallbackFilePath = getFallbackFilePath(filePath);
+            if (!fallbackFilePath) {
+                res.writeHead(404);
+                res.end('File not found');
+                return;
+            }
+
+            fs.readFile(fallbackFilePath, (fallbackErr, fallbackData) => {
+                if (fallbackErr) {
+                    res.writeHead(404);
+                    res.end('File not found');
+                    return;
+                }
+
+                data = fallbackData;
+                const etag = `"${crypto.createHash('md5').update(data).digest('hex')}"`;
+                if (req.headers['if-none-match'] === etag) {
+                    res.writeHead(304);
+                    res.end();
+                    return;
+                }
+
+                const isHtml = ext === '.html' || ext === '';
+                const cacheControl = isHtml
+                    ? 'public, max-age=300'
+                    : 'public, max-age=604800';
+
+                const headers = {
+                    'Content-Type': contentType,
+                    'Cache-Control': cacheControl,
+                    'ETag': etag,
+                };
+
+                const compressible = /json|javascript|css|html|xml|svg|text/.test(contentType);
+                const acceptsGzip = /gzip/.test(req.headers['accept-encoding'] || '');
+
+                if (compressible && acceptsGzip) {
+                    zlib.gzip(data, (gzErr, compressed) => {
+                        if (gzErr) {
+                            res.writeHead(200, headers);
+                            res.end(data);
+                            return;
+                        }
+                        res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip' });
+                        res.end(compressed);
+                    });
+                } else {
+                    res.writeHead(200, headers);
+                    res.end(data);
+                }
+            });
+            return;
+        }
+
+        // ETag for conditional requests
+        const etag = `"${crypto.createHash('md5').update(data).digest('hex')}"`;
+        if (req.headers['if-none-match'] === etag) {
+            res.writeHead(304);
+            res.end();
+            return;
+        }
+
+        // Long cache for versioned/immutable assets; shorter for HTML
+        const isHtml = ext === '.html' || ext === '';
+        const cacheControl = isHtml
+            ? 'public, max-age=300'           // 5 min for HTML
+            : 'public, max-age=604800';        // 7 days for JS/CSS/JSON/fonts/etc.
+
+        const headers = {
+            'Content-Type': contentType,
+            'Cache-Control': cacheControl,
+            'ETag': etag,
+        };
+
+        // Gzip for text-based types
+        const compressible = /json|javascript|css|html|xml|svg|text/.test(contentType);
+        const acceptsGzip = /gzip/.test(req.headers['accept-encoding'] || '');
+
+        if (compressible && acceptsGzip) {
+            zlib.gzip(data, (gzErr, compressed) => {
+                if (gzErr) {
+                    res.writeHead(200, headers);
+                    res.end(data);
+                    return;
+                }
+                res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip' });
+                res.end(compressed);
+            });
         } else {
-            res.writeHead(200, { 'Content-Type': contentType });
+            res.writeHead(200, headers);
             res.end(data);
         }
     });
