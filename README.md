@@ -1,39 +1,61 @@
-# 5e.tools – Ran for Friends
+# 5etools at Home
 
-This is a custom fork of 5e.tools for friends, based on the official 5e.tools project.
+Custom self-hosted deployment of 5etools, synced with the official mirror source and configured for remote play via ngrok.
 
----
+## Goals
 
-Visit the [main site](https://5e.tools/index.html) or go to the unofficial GitHub [mirror](index.html).
+- Keep local customizations while tracking upstream 5etools updates
+- Provide stable local access for game sessions
+- Provide optional remote access for players via tunnel
+- Include lightweight local analytics and operational scripts
 
-[Join the 5etools Discord here!](https://discord.gg/5etools)
+## Quick Start
 
-## Running the Server
+### Prerequisites
 
-To run the web server with Node.js, use:
+- Node.js 24+
+- Git
+- ngrok installed and authenticated (for remote access)
+
+### Install
+
+```bash
+npm install
+```
+
+### Run Locally
 
 ```bash
 npm start
 ```
 
-This will start the server on http://localhost:3000.
+Local URL: http://localhost:3000/
 
-Alternatively, for development with auto-reload and CORS:
+### Start Tunnel
+
+In a second terminal:
 
 ```bash
-npm run serve:dev
+npm run tunnel
 ```
 
-The server automatically checks for updates from the GitHub repository every two weeks and pulls them if available. Git has been installed and the repository is initialized for automatic updates.
+### Image Audit
 
-## Help and Support
+```bash
+npm run audit:images
+```
 
-Please see [our wiki](https://wiki.tercept.net/) for FAQs, installation guides, supported integrations, and more.
+## Project Notes
 
-## Contributing
+- Upstream source: https://github.com/5etools-mirror-3/5etools-src
+- This repo may contain local operational scripts for personal hosting workflows
+- Token/image handling supports URL-encoded and accented-name asset fallbacks in the local server
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+## Support
+
+- 5etools Discord: https://discord.gg/5etools
+- Wiki: https://wiki.tercept.net/
 
 ## License
 
-This project is licensed under the terms of the MIT license.
+MIT. See LICENSE.md.
