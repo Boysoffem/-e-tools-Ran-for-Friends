@@ -222,8 +222,14 @@ const server = http.createServer((req, res) => {
   });
 });
 
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+function shutdown() {
+  cleanup();
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5000).unref();
+}
+
+process.once('SIGINT', shutdown);
+process.once('SIGTERM', shutdown);
 process.on('exit', cleanup);
 
 server.listen(PROXY_PORT, LOCAL_HOST, async () => {
