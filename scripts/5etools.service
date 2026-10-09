@@ -1,0 +1,19 @@
+[Unit]
+Description=5etools server and ngrok tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Example: replace these paths with your own installation before installing.
+WorkingDirectory=%h/5etools
+Environment=NODE_BIN=node
+Environment=NGROK_BIN=ngrok
+ExecStart=/usr/bin/bash %h/5etools/scripts/run-linux-stack.sh
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target
