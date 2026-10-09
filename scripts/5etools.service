@@ -1,0 +1,18 @@
+[Unit]
+Description=5etools server and ngrok tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/chloes/Desktop/wip/-e-tools-Ran-for-Friends
+Environment=NODE_BIN=/home/chloes/Desktop/wip/.runtime/node-v24.21.0-linux-x64/bin/node
+Environment=NGROK_BIN=/home/chloes/Desktop/wip/.runtime/ngrok/ngrok
+ExecStart=/usr/bin/bash /home/chloes/Desktop/wip/-e-tools-Ran-for-Friends/scripts/run-linux-stack.sh
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target
