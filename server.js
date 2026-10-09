@@ -27,7 +27,7 @@ function getFallbackFilePath(filePath) {
 }
 
 function checkForUpdates() {
-    exec('"C:\\Program Files\\Git\\bin\\git.exe" pull', { cwd: __dirname }, (err, stdout, stderr) => {
+    exec('git pull', { cwd: __dirname }, (err, stdout, stderr) => {
         if (err) {
             console.error('Failed to pull updates:', err.message);
         } else {

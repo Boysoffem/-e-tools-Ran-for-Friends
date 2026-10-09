@@ -11,6 +11,7 @@
 		"start": "node server.js",
 		"tunnel": "node start-tunnel.js",
 		"stack": "powershell -ExecutionPolicy Bypass -File ./auto-restart-tunnel.ps1",
+		"stack:linux": "bash ./scripts/run-linux-stack.sh",
 		"audit:images": "node scripts/audit-images.mjs",
 		"version-bump": "npm version -m \"chore(version): bump\"",
 		"gen": "node node/generate-all.js",
