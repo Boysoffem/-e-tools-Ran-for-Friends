@@ -50,10 +50,14 @@ try {
 	});
 	await bob.goto(`${base}/feats.html`); await bob.waitForFunction(() => document.body.textContent.includes("Builder Gift"));
 	console.log("PASS: existing builder saves are shared");
+	// List content appears before optional manager modules finish loading. Let
+	// those requests settle before deliberately taking the test server offline.
+	await Promise.all([alice, bob].map(page => page.waitForLoadState("networkidle")));
 	await stop(); await start();
 	const fresh = await browser.newContext(); const newcomer = await fresh.newPage();
 	await newcomer.goto(`${base}/feats.html`); await newcomer.waitForFunction(() => document.body.textContent.includes("Shared Moon Gift") && document.body.textContent.includes("Builder Gift"));
 	console.log("PASS: new visitors receive the library after a server restart");
+	await newcomer.waitForLoadState("networkidle");
 	await stop();
 	await alice.locator("[data-editor] [name=name]").fill("Offline Gift");
 	await alice.getByRole("button", {name: "Check & preview", exact: true}).click();
