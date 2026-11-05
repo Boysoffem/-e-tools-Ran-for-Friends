@@ -104,6 +104,28 @@ try {
 	assert.match(await admin.locator("#accounts").innerText(), /friend@example.com/);
 	assert.equal(await admin.locator("#accounts img").count(), 0);
 	console.log("PASS: GitHub emails are private; only the designated administrator can see the list; profile HTML is displayed as text");
+	const friendRow = admin.locator("#accounts tr").filter({hasText: "friend@example.com"});
+	assert.equal(await friendRow.locator("[data-session-duration]").innerText(), "Less than 1 minute");
+	// Exercise longer duration labels with isolated response fixtures; real
+	// session arithmetic, multiple sessions, and expiry are covered by API tests.
+	await admin.route(`${base}/api/auth/accounts?offset=0`, async route => {
+		const response = await route.fetch();
+		const data = await response.json();
+		const friend = data.accounts.find(account => account.email === "friend@example.com");
+		friend.active_session_count = 2; friend.current_session_duration_ms = (2 * 1440 + 3 * 60 + 4) * 60_000;
+		await route.fulfill({response, json: data});
+	});
+	await admin.locator("#refresh").click();
+	await friendRow.getByText("2d 3h 4m (2 sessions; longest shown)").waitFor();
+	await admin.unroute(`${base}/api/auth/accounts?offset=0`);
+	await visitor.locator("#signout").click();
+	await visitor.locator("#signed-out").waitFor({state: "visible"});
+	await admin.locator("#refresh").click();
+	await friendRow.getByText("No active session").waitFor();
+	await login(visitor, "github", {email: "friend@example.com", name: "<img src=x onerror=\"alert(1)\"> Friend", subject: "9876"});
+	await admin.locator("#refresh").click();
+	await friendRow.getByText("Less than 1 minute").waitFor();
+	console.log("PASS: admin durations display elapsed time and multiple sessions, clear after sign-out, and reset for a fresh sign-in");
 	await admin.setViewportSize({width: 390, height: 844});
 	assert.equal(await admin.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 	await admin.screenshot({path: path.join(tmpdir(), "five-private-accounts-mobile.png"), fullPage: true});

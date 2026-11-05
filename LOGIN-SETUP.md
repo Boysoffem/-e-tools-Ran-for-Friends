@@ -101,6 +101,10 @@ This keeps the saved list off the administrator's server; it is not an encrypted
 
 ### Account records and reports
 
+The private admin list includes **Logged in for**, showing the age of each person's oldest unexpired session and a count when they have multiple sessions. Accounts with no valid sessions show **No active session**. The list refreshes every minute while visible and has a manual **Refresh** button.
+
+This is elapsed sign-in time, including time with the browser closed. It is not active browsing time or a lifetime total. Signing out removes that session; other sessions can remain until they sign out or reach the seven-day expiry. The duration comes from existing fixed-expiry session records, so it works for existing sign-ins without collecting page visits, activity heartbeats, or additional personal records. Durations are visible only in the admin list and are not added to weekly email reports.
+
 Optional [weekly new-account email reports](EMAIL-REPORTS.md) send new account names, verified emails, providers, and creation dates to the designated administrator only. Use `sh scripts/setup-login.sh --email` to configure the sender. The sign-in notice discloses this use before the person agrees. Reports never email the listed account holders.
 
 After the person agrees and completes sign-in, the private SQLite database saves their provider and account ID, display name, verified email if supplied, first/latest sign-in time, and total sign-ins. Emails are trimmed, lowercased, checked for invalid characters, and never added to public homebrew or ordinary server logs. GitHub contributes only its verified **primary** address; unverified/missing addresses stay blank and cannot grant administrator access by email. No unrelated emails are collected.

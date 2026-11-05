@@ -6,7 +6,7 @@ import {tmpdir} from "node:os";
 import path from "node:path";
 import {generateKeyPair} from "jose";
 import {readAuthConfig, normalizeEmail} from "../../server/auth-config.js";
-import {AuthStore, hashToken, randomToken} from "../../server/auth-store.js";
+import {AuthStore, hashToken, randomToken, SESSION_SECONDS} from "../../server/auth-store.js";
 import {createAuthHandler} from "../../server/auth.js";
 import {exchangeProfile, authorizeUrl} from "../../server/auth-providers.js";
 import {createProviderFixture} from "./provider-fixture.mjs";
@@ -190,4 +190,48 @@ test("disabled add-on cannot authenticate or reveal records; HTTPS cookies are S
 	assert.match(headers.get("Set-Cookie"), /^__Host-five_oauth=/);
 	assert.match(headers.get("Set-Cookie"), /; Secure$/);
 	assert.ok(!headers.get("Set-Cookie").includes("Domain="));
+});
+
+test("admin session durations use the oldest valid session and exclude logout and expiry", async t => {
+	const api = await setup(t);
+	const present = Date.now();
+	let now = present;
+	t.mock.method(Date, "now", () => now);
+	const owner = api.store.login({provider: "google", subject: "owner", email: "admin@example.com", name: "Owner"});
+	const profile = {provider: "github", subject: "123", email: "friend@example.com", name: "Friend"};
+	now = present - 8 * 24 * 60 * 60_000;
+	api.store.login(profile); // Already expired; must never extend the displayed duration.
+	now = present - 134 * 60_000;
+	const oldest = api.store.login(profile);
+	now = present - 14 * 60_000;
+	const newest = api.store.login(profile);
+	const signedOut = api.store.login({...profile, subject: "456", email: "out@example.com"});
+	api.store.logout(signedOut);
+	now = present;
+	const list = async () => {
+		const response = await api.request("/api/auth/accounts", {headers: {Cookie: `five_session=${owner}`}});
+		assert.equal(response.status, 200);
+		return response.json();
+	};
+	let data = await list();
+	assert.equal(data.accounts.length, 3);
+	const friend = data.accounts.find(account => account.subject === "123");
+	assert.equal(friend.active_session_count, 2);
+	assert.equal(friend.current_session_duration_ms, 134 * 60_000);
+	const out = data.accounts.find(account => account.subject === "456");
+	assert.equal(out.active_session_count, 0);
+	assert.equal(out.current_session_duration_ms, null);
+	assert.equal(data.accounts.find(account => account.subject === "owner").current_session_duration_ms, 0);
+	assert.ok(!JSON.stringify(data).includes(hashToken(newest)));
+	assert.ok(!JSON.stringify(data).includes(newest));
+	assert.equal((await api.request("/api/auth/accounts")).status, 401);
+	assert.equal((await api.request("/api/auth/accounts", {headers: {Cookie: `five_session=${newest}`}})).status, 403);
+	api.store.logout(oldest);
+	data = await list();
+	assert.equal(data.accounts.find(account => account.subject === "123").active_session_count, 1);
+	assert.equal(data.accounts.find(account => account.subject === "123").current_session_duration_ms, 14 * 60_000);
+	now = present - 14 * 60_000 + SESSION_SECONDS * 1000;
+	data = await list();
+	assert.equal(data.accounts.find(account => account.subject === "123").active_session_count, 0);
+	assert.equal(data.accounts.find(account => account.subject === "123").current_session_duration_ms, null);
 });

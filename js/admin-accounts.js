@@ -1,6 +1,16 @@
 const byId = id => document.getElementById(id);
 let offset = 0;
 let loading = false;
+
+function sessionDuration (account) {
+	if (!account.active_session_count || account.current_session_duration_ms == null) return "No active session";
+	const minutes = Math.floor(account.current_session_duration_ms / 60_000);
+	const days = Math.floor(minutes / 1440);
+	const hours = Math.floor(minutes / 60) % 24;
+	const duration = days ? `${days}d ${hours}h ${minutes % 60}m` : hours ? `${hours}h ${minutes % 60}m` : minutes ? `${minutes}m` : "Less than 1 minute";
+	return account.active_session_count > 1 ? `${duration} (${account.active_session_count} sessions; longest shown)` : duration;
+}
+
 async function load () {
 	if (loading) return;
 	loading = true;
@@ -21,6 +31,10 @@ async function load () {
 			for (const value of [account.name, account.email || "No verified primary email", account.provider === "google" ? "Google" : "GitHub", new Date(account.first_login).toLocaleString(), new Date(account.last_login).toLocaleString(), account.login_count]) {
 				const cell = document.createElement("td"); cell.textContent = value; row.append(cell);
 			}
+			const duration = document.createElement("td");
+			duration.dataset.sessionDuration = "";
+			duration.textContent = sessionDuration(account);
+			row.append(duration);
 			byId("accounts").append(row);
 		}
 		byId("page-number").textContent = `Page ${Math.floor(offset / 50) + 1} of ${Math.max(1, Math.ceil(data.total / 50))}`;
@@ -37,4 +51,6 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("pagehide", () => byId("accounts").replaceChildren());
 window.addEventListener("pageshow", event => { if (event.persisted) load(); });
+// Re-fetch session state rather than letting a timer run beyond logout/expiry.
+setInterval(() => { if (!document.hidden) load(); }, 60_000);
 await load();

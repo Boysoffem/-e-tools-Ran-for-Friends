@@ -85,9 +85,24 @@ export class AuthStore {
 	}
 
 	list (offset = 0) {
+		const now = Date.now();
+		// Sessions have a fixed lifetime and are never extended by browsing.
+		// Their existing expiry therefore gives the original sign-in time,
+		// including for sessions created before the admin duration display.
+		const accounts = this.db.prepare(`SELECT accounts.*,
+			COALESCE(current_sessions.count, 0) AS active_session_count,
+			current_sessions.oldest_expiry AS oldest_session_expiry
+			FROM accounts LEFT JOIN (
+				SELECT account_id, COUNT(*) AS count, MIN(expires) AS oldest_expiry
+				FROM sessions WHERE expires > ? GROUP BY account_id
+			) AS current_sessions ON current_sessions.account_id = accounts.id
+			ORDER BY accounts.last_login DESC, accounts.id DESC LIMIT 50 OFFSET ?`).all(now, offset)
+			.map(({oldest_session_expiry: expiry, ...account}) => ({...account,
+				current_session_duration_ms: expiry == null ? null : Math.max(0, now - (expiry - SESSION_SECONDS * 1000)),
+			}));
 		return {
 			total: this.db.prepare("SELECT count(*) AS count FROM accounts").get().count,
-			accounts: this.db.prepare("SELECT * FROM accounts ORDER BY last_login DESC, id DESC LIMIT 50 OFFSET ?").all(offset),
+			accounts,
 		};
 	}
 

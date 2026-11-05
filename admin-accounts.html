@@ -21,10 +21,11 @@
 			<p id="admin-status" class="status" role="status" aria-live="polite">Loading accounts…</p>
 			<p id="report-status" class="muted" role="status" aria-live="polite"></p>
 			<div class="table-scroll" tabindex="0" aria-label="Private accounts table">
-				<table><thead><tr><th scope="col">Name</th><th scope="col">Verified email</th><th scope="col">Provider</th><th scope="col">First sign-in</th><th scope="col">Last sign-in</th><th scope="col">Sign-ins</th></tr></thead><tbody id="accounts"></tbody></table>
+				<table><thead><tr><th scope="col">Name</th><th scope="col">Verified email</th><th scope="col">Provider</th><th scope="col">First sign-in</th><th scope="col">Last sign-in</th><th scope="col">Sign-ins</th><th scope="col">Logged in for</th></tr></thead><tbody id="accounts"></tbody></table>
 			</div>
 			<div class="pagination"><button id="previous" disabled>Previous</button><span id="page-number"></span><button id="next" disabled>Next</button><button id="refresh">Refresh</button></div>
 			<p class="muted">Google and GitHub accounts are listed separately, even when they share an email. This list is never added to public homebrew.</p>
+			<p class="muted">“Logged in for” shows the age of the person's oldest unexpired session. It keeps counting when they close the browser or leave the site, until sign-out or the seven-day expiry. This measures session duration, not active browsing time. Multiple sessions are counted separately. The list refreshes every minute while visible; use Refresh for an immediate update.</p>
 		</section>
 	</main>
 </body>
