@@ -33,3 +33,30 @@ sw-injector.js
 
 # Dev scripts
 dev-*.sh
+
+# Shared homebrew runtime data (back up separately)
+.shared-homebrew/
+
+# Optional sign-in credentials and private account records
+.env.auth*
+.private-auth/
+
+# Local credentials, databases, exports, and backups
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.backup
+*.bak
+*.pem
+*.key
+backups/
+exports/
+.runtime/
+LOCAL-SETUP.md
+
+# Temporary generated homebrew validator
+js/homebrew/schema-generated.tmp.js

@@ -1,0 +1,326 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "shared.json",
+	"version": "1.3.0",
+
+	"$defs": {
+		"foundryId": {
+			"type": "string",
+			"minLength": 16,
+			"maxLength": 16,
+			"pattern": "^[A-Za-z0-9]+$"
+		},
+
+		"foundryIdShort": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 16,
+			"pattern": "^[A-Za-z0-9]+$"
+		},
+
+		"_elevationObj": {
+			"type": "object",
+			"properties": {
+				"top": {"type": ["number"]},
+				"bottom": {"type": ["number"]}
+			},
+			"minProperties": 1,
+			"additionalProperties": false
+		},
+
+		"wall": {
+			"type": "object",
+
+			"properties": {
+				"c": {
+					"type": "array",
+					"items": {"type": "number"},
+					"minItems": 4,
+					"maxItems": 4
+				},
+
+				"light": {"type": "number"},
+				"move": {"type": "number"},
+				"sight": {"type": "number"},
+				"sound": {"type": "number"},
+				"dir": {"type": "number"},
+				"door": {"type": "number"},
+				"ds": {"type": "number"},
+				"doorSound": {"type": "string"},
+
+				"threshold": {
+					"type": "object",
+
+					"properties": {
+						"light": {"type": "number"},
+						"sight": {"type": "number"},
+						"sound": {"type": "number"},
+						"attenuation": {"const": true}
+					}
+				},
+
+				"animation": {
+					"type": [
+						"object",
+						"null"
+					],
+
+					"properties": {
+						"type": {"type": ["string", "null"]},
+						"texture": {"type": ["string", "null"]},
+						"flip": {"type": ["boolean", "null"]},
+						"double": {"type": "boolean"},
+						"direction": {"type": ["integer", "null"], "enum": [1,-1]},
+						"duration": {"type": ["integer", "null"]},
+						"strength": {"type": ["number", "null"]}
+					},
+					"additionalProperties": false
+				},
+
+				"levels": {
+					"type": "array",
+
+					"items": {
+						"type": "string"
+					},
+					"uniqueItems": true
+				}
+
+			},
+
+			"additionalProperties": false
+		},
+
+		"wallArray": {
+			"type": "array",
+			"items": {"$ref": "#/$defs/wall"},
+			"minItems": 1,
+			"uniqueItems": true
+		},
+
+		"light": {
+			"type": "object",
+
+			"properties": {
+				"x": {"type": "number"},
+				"y": {"type": "number"},
+
+				"rotation": {"type": "number"},
+
+				"walls": {"const": false},
+				"vision": {"const": true},
+				"hidden": {"const": true},
+
+				"config": {
+					"type": "object",
+
+					"properties": {
+						"bright": {"type": "number"},
+						"dim": {"type": "number"},
+
+						"alpha": {"type": "number"},
+						"angle": {"type": "number"},
+						"color": {"type": "string"},
+						"coloration": {"type": "number"},
+						"attenuation": {"type": "number"},
+						"luminosity": {"type": "number"},
+						"saturation": {"type": "number"},
+						"contrast": {"type": "number"},
+						"shadows": {"type": "number"},
+
+						"animation": {
+							"type": "object",
+
+							"properties": {
+								"type": {"type": ["string", "null"]},
+								"speed": {"type": "number"},
+								"intensity": {"type": "number"},
+								"reverse": {"const": true}
+							},
+
+							"additionalProperties": false,
+							"minProperties": 1
+						},
+
+						"darkness": {
+							"type": "object",
+
+							"properties": {
+								"min": {"type": "number"},
+								"max": {"type": "number"}
+							},
+
+							"additionalProperties": false,
+							"minProperties": 1
+						}
+					},
+
+					"required": ["bright", "dim"],
+					"additionalProperties": false
+				}
+			},
+
+			"additionalProperties": false
+		},
+
+		"lightArray": {
+			"type": "array",
+			"items": {"$ref": "#/$defs/light"},
+			"minItems": 1,
+			"uniqueItems": true
+		},
+
+		"_regionShape": {
+			"oneOf": [
+				{
+					"type": "object",
+					"properties": {
+						"type": {"const": "rectangle"},
+						"x": {"type": "number"},
+						"y": {"type": "number"},
+						"width": {"type": "number"},
+						"height": {"type": "number"},
+						"rotation": {"type": "number"},
+						"hole": {"const": true}
+					},
+					"required": ["type", "x", "y", "width", "height"],
+					"additionalProperties": false
+				},
+
+				{
+					"type": "object",
+					"properties": {
+						"type": {"const": "ellipse"},
+						"x": {"type": "number"},
+						"y": {"type": "number"},
+						"radiusX": {"type": "number"},
+						"radiusY": {"type": "number"},
+						"rotation": {"type": "number"},
+						"hole": {"const": true}
+					},
+					"required": ["type", "x", "y", "radiusX", "radiusY"],
+					"additionalProperties": false
+				},
+
+				{
+					"type": "object",
+					"properties": {
+						"type": {"const": "polygon"},
+						"points": {
+							"type": "array",
+							"items": {"type": "number"},
+							"minItems": 1
+						},
+						"hole": {"const": true}
+					},
+					"required": ["type", "points"],
+					"additionalProperties": false
+				}
+			]
+		},
+
+		"_regionBehaviorDestination": {
+			"type": "object",
+			"properties": {
+				"foundryIdScene": {"$ref": "#/$defs/foundryIdShort"},
+				"foundryIdRegion": {"$ref": "#/$defs/foundryIdShort"}
+			},
+			"required": [
+				"foundryIdScene",
+				"foundryIdRegion"
+			],
+			"minProperties": 1
+		},
+
+		"_regionBehavior": {
+			"type": "object",
+
+			"properties": {
+				"name": {"type": "string"},
+				"type": {"type": "string"},
+				"disabled": {"const": true},
+
+				"system": {
+					"type": "object",
+					"properties": {
+						"destinations": {
+							"type": "array",
+							"items": {"$ref": "#/$defs/_regionBehaviorDestination"},
+							"minItems": 1,
+							"uniqueItems": true
+						}
+					},
+					"minProperties": 1
+				}
+			},
+
+			"required": ["type"],
+
+			"additionalProperties": false
+		},
+
+		"region": {
+			"type": "object",
+
+			"properties": {
+				"foundryId": {"$ref": "#/$defs/foundryIdShort"},
+
+				"name": {"type": "string"},
+				"color": {"type": "string", "minLength": 7, "maxLength": 7},
+				"visibility": {"type": "number"},
+				"locked": {"const": true},
+
+				"elevation": {"$ref": "#/$defs/_elevationObj"},
+
+				"shapes": {
+					"type": "array",
+					"items": {"$ref": "#/$defs/_regionShape"},
+					"minItems": 1,
+					"uniqueItems": true
+				},
+
+				"behaviors": {
+					"type": "array",
+					"items": {"$ref": "#/$defs/_regionBehavior"},
+					"minItems": 1,
+					"uniqueItems": true
+				}
+			},
+
+			"additionalProperties": false,
+			"minProperties": 1
+		},
+
+		"regionArray": {
+			"type": "array",
+			"items": {"$ref": "#/$defs/region"},
+			"minItems": 1,
+			"uniqueItems": true
+		},
+
+		"map": {
+			"type": "object",
+
+			"properties": {
+				"name": {"type": "string"},
+				"source": {"type": "string"},
+				"foundryId": {"$ref": "#/$defs/foundryIdShort"},
+				"walls": {"$ref": "#/$defs/wallArray"},
+				"lights": {"$ref": "#/$defs/lightArray"},
+				"regions": {"$ref": "#/$defs/regionArray"},
+				"isIgnored": {"const": true}
+			},
+
+			"required": ["name", "source"],
+			"minProperties": 3,
+			"additionalProperties": false
+		},
+
+		"mapArray": {
+			"type": "array",
+			"items": {"$ref": "#/$defs/map"},
+			"minItems": 1,
+			"uniqueItems": true
+		}
+	}
+}

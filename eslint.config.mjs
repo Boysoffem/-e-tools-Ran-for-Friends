@@ -202,5 +202,10 @@ export default [
 			"no-useless-assignment": "off",
 		},
 	},
+	{
+		files: ["server.js", "start-tunnel.js", "server/**/*.js", "scripts/**/*.mjs"],
+		languageOptions: {globals: {...globals.node}},
+		rules: {"no-console": "off"},
+	},
 	CONFIG_IGNORES,
 ];

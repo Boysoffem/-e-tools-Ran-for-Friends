@@ -1,0 +1,31 @@
+name: Repository checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:privacy
+      - run: npm run test:js
+      - run: npm run test:css
+      - run: npm run test:unit -- --runInBand
+      - run: npm run test:auth
+      - run: npm run test:homebrew
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:auth:browser
+      - run: npm run test:homebrew:browser
+      - run: npm run test:homebrew:shared

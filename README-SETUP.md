@@ -31,7 +31,6 @@ npm run tunnel
 ## Common URLs
 
 - Local app: http://localhost:3000/
-- Local analytics dashboard: http://localhost:3000/analytics
 - Initiative tracker: http://localhost:3000/inittrackerplayerview.html?auto=1
 - Public app: https://YOUR_NGROK_URL.ngrok-free.dev/
 
@@ -55,3 +54,13 @@ git merge upstream/main
 ```
 
 Upstream: https://github.com/5etools-mirror-3/5etools-src
+
+## Homebrew Workshop
+
+Open [Homebrew Manager](http://localhost:3000/managebrew.html) for guided content creation and selectable-text PDF imports. See [the workshop guide](HOMEBREW-WORKSHOP.md) for the review workflow, supported content, and accuracy limits.
+
+## Optional sign-in
+
+Google and GitHub sign-in and an administrator-only email list are available as an optional add-on. Run `sh scripts/setup-login.sh` from the project folder, without `sudo`, to connect your provider apps. This finds the bundled Node runtime even when npm is not on your terminal's PATH. See [login setup](LOGIN-SETUP.md) for provider registration, callback URLs, and private storage details. Browsing and shared homebrew remain available without an account.
+
+For a weekly email of new accounts, run `sh scripts/setup-login.sh --email`. See [email report setup](EMAIL-REPORTS.md). Reports are sent Mondays at 9 a.m. Central, only when there are new accounts, once the sender's credentials are configured.

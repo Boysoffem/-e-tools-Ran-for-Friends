@@ -137,6 +137,45 @@
 		}
 	}
 
+	.page__nav-inner > .page__account-nav {
+		float: right;
+		margin: 4px 0 4px 12px;
+
+		> a {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 36px;
+			padding: 7px 14px;
+			border: 1px solid #00589f;
+			border-radius: 6px;
+			background: #006bc4;
+			color: #fff;
+			font-weight: 600;
+			white-space: nowrap;
+
+			&:hover,
+			&:focus {
+				background: #00589f;
+				color: #fff;
+			}
+
+			&:focus-visible {
+				outline: 2px solid #006bc4;
+				outline-offset: 3px;
+			}
+		}
+
+		@media screen and (width <= #{vars.$width-screen-md}) {
+			align-self: flex-end;
+			margin: 0 0 4px;
+
+			> a {
+				min-height: 44px;
+			}
+		}
+	}
+
 	.ve-active > .nav__link > .page__ {
 		&nav-date {
 			color: #fff;

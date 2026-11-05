@@ -6,7 +6,7 @@ const ROOT = process.cwd();
 const STATE_FILE = path.join(ROOT, ".maintenance-state.json");
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
-function run(command, {allowFail = false, stdio = "pipe"} = {}) {
+function run (command, {allowFail = false, stdio = "pipe"} = {}) {
 	try {
 		const out = execSync(command, {cwd: ROOT, stdio});
 		return {ok: true, out: out?.toString?.() ?? ""};
@@ -17,7 +17,7 @@ function run(command, {allowFail = false, stdio = "pipe"} = {}) {
 	}
 }
 
-function readState() {
+function readState () {
 	if (!fs.existsSync(STATE_FILE)) return null;
 	try {
 		return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
@@ -26,11 +26,11 @@ function readState() {
 	}
 }
 
-function writeState(payload) {
+function writeState (payload) {
 	fs.writeFileSync(STATE_FILE, JSON.stringify(payload, null, 2));
 }
 
-function removeAccidentalFiles() {
+function removeAccidentalFiles () {
 	const accidental = ["{", "console.log('Tunnel"];
 	const removed = [];
 	for (const rel of accidental) {
@@ -46,7 +46,7 @@ function removeAccidentalFiles() {
 	return removed;
 }
 
-function main() {
+function main () {
 	const now = Date.now();
 	const prev = readState();
 	const lastRun = prev?.lastRunTs ?? 0;

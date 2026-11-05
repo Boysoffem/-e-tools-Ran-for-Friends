@@ -34,7 +34,8 @@ jobs:
 
          -  name: Archive Release
             run: |
-               zip -r 5etools-${{ github.ref_name }}.zip . -x '*.git*' '*node_modules*' '*.github*'
+               node scripts/check-publish-privacy.mjs --staged
+               git archive --format=zip --output="5etools-${{ github.ref_name }}.zip" HEAD
 
          -  name: Upload Release
             run: |

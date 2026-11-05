@@ -21,6 +21,7 @@ export const CONFIG_IGNORES = {
 		// Generated
 		"sw.js",
 		"sw-injector.js",
+		"js/homebrew/schema-validator.js",
 
 		// Libraries
 		"lib/*",

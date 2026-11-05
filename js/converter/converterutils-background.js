@@ -822,7 +822,7 @@ export class BackgroundSkillToolLanguageTag {
 		if (mDoubleAnd) return [{[mDoubleAnd[1].toLowerCase()]: true, [mDoubleAnd[2].toLowerCase()]: true}];
 
 		const mDoubleAndChoose = new RegExp(`^${reStrLanguage} and one other language of your choice$`, "i").exec(str);
-		if (mDoubleAndChoose) return [{[mDoubleAndChoose[1].toLowerCase()]: true, "anyStandard": true}];
+		if (mDoubleAndChoose) return [{[mDoubleAndChoose[1].toLowerCase()]: true, "anyStandard": 1}];
 
 		const mDoubleOr = new RegExp(`^${reStrLanguage} or ${reStrLanguage}$`, "i").exec(str);
 		if (mDoubleOr) return [{[mDoubleOr[1].toLowerCase()]: true}, {[mDoubleOr[2].toLowerCase()]: true}];
@@ -834,7 +834,7 @@ export class BackgroundSkillToolLanguageTag {
 		if (mNumExotic) return [{"anyExotic": Parser.textToNumber(mNumExotic.groups?.count || "one")}];
 
 		const mSingleOrAlternate = new RegExp(`^${reStrLanguage} or one of your choice if you already speak ${reStrLanguage}$`, "i").exec(str);
-		if (mSingleOrAlternate) return [{[mSingle[1].toLowerCase()]: true}, {"anyStandard": 1}];
+		if (mSingleOrAlternate) return [{[mSingleOrAlternate[1].toLowerCase()]: true}, {"anyStandard": 1}];
 
 		return null;
 	}

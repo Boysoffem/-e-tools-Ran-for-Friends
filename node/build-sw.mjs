@@ -34,6 +34,7 @@ const workboxPrecacheBuildResult = await injectManifest({
 	injectionPoint: "self.__WB_PRECACHE_MANIFEST",
 	maximumFileSizeToCacheInBytes: 5 /* mb */ * 1e6,
 	globDirectory: "", // use the current directory - run this script from project root.
+	globIgnores: ["login.html", "admin-accounts.html"],
 	globPatterns: [
 		"js/**/*.js", // all js needs to be loaded
 		"lib/**/*.js", // js in lib needs to be loaded

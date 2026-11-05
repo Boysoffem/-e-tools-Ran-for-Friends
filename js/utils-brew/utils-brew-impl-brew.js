@@ -1,5 +1,6 @@
 import {BrewUtil2Base} from "./utils-brew-base.js";
 import {BrewDoc} from "./utils-brew-models.js";
+import {SharedHomebrewClient} from "../homebrew/shared-client.js";
 
 export class BrewUtil2_ extends BrewUtil2Base {
 	_STORAGE_KEY_LEGACY = "HOMEBREW_STORAGE";
@@ -44,6 +45,30 @@ export class BrewUtil2_ extends BrewUtil2Base {
 	pLoadAdventureBookIdsIndex (urlRoot) { return DataUtil.brew.pLoadAdventureBookIdsIndex(urlRoot); }
 
 	/* -------------------------------------------- */
+
+	_sharedClient = new SharedHomebrewClient(this);
+
+	async _pGetBrew_pGetLocalBrew (options = {}) {
+		const docs = await super._pGetBrew_pGetLocalBrew(options);
+		await this._sharedClient.init();
+		return this._cache_brewsLocal = this._sharedClient.attach(docs);
+	}
+
+	async pGetBrew (options = {}) {
+		return this._sharedClient.dedupe(await super.pGetBrew(options));
+	}
+
+	async _pSetBrew_ ({val, isInitialMigration}) {
+		if (!isInitialMigration && typeof window !== "undefined" && !globalThis.IS_VTT) {
+			const before = await this._storage.pGet(this._STORAGE_KEY) || [];
+			await this._sharedClient.publishChanges(before, val);
+		}
+		return super._pSetBrew_({val, isInitialMigration});
+	}
+
+	async pSaveSharedBrew (brew, options = {}) {
+		return this._sharedClient.save(brew, options);
+	}
 
 	// region Editable
 	async pGetEditableBrewDoc () {

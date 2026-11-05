@@ -1,362 +1,237 @@
-import http from 'http';
-import fs from 'fs';
-import path from 'path';
-import zlib from 'zlib';
-import crypto from 'crypto';
-import { fileURLToPath } from 'url';
-import os from 'os';
-import { exec } from 'child_process';
-import { trackVisit, getAnalytics } from './analytics.js';
+import http from "http";
+import fs from "fs";
+import path from "path";
+import zlib from "zlib";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
+import os from "os";
+import {SharedHomebrewStore, createSharedHomebrewHandler} from "./server/shared-homebrew.js";
+import {readAuthConfig} from "./server/auth-config.js";
+import {createAuthHandler} from "./server/auth.js";
+import {AccountReporter, readReportConfig} from "./server/account-reports.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const authConfigFile = process.env.AUTH_CONFIG_FILE || path.join(__dirname, ".env.auth");
+if (fs.existsSync(authConfigFile)) process.loadEnvFile(authConfigFile);
+const authConfig = readAuthConfig(process.env, __dirname);
+const accountReporter = new AccountReporter(readReportConfig(process.env, authConfig), () => authHandler.getStore());
+const authHandler = createAuthHandler(authConfig, {reportStatus: () => accountReporter.status()});
+accountReporter.start();
 
-function getAsciiFallbackName(name) {
-    return name
-        .replace(/æ/gi, m => (m === 'Æ' ? 'Ae' : 'ae'))
-        .replace(/œ/gi, m => (m === 'Œ' ? 'Oe' : 'oe'))
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '');
+function getAsciiFallbackName (name) {
+	return name
+		.replace(/æ/gi, m => (m === "Æ" ? "Ae" : "ae"))
+		.replace(/œ/gi, m => (m === "Œ" ? "Oe" : "oe"))
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "");
 }
 
-function getFallbackFilePath(filePath) {
-    const parsed = path.parse(filePath);
-    const altBaseName = getAsciiFallbackName(parsed.name);
-    if (!altBaseName || altBaseName === parsed.name) return null;
-    return path.join(parsed.dir, `${altBaseName}${parsed.ext}`);
+function getFallbackFilePath (filePath) {
+	const parsed = path.parse(filePath);
+	const altBaseName = getAsciiFallbackName(parsed.name);
+	if (!altBaseName || altBaseName === parsed.name) return null;
+	return path.join(parsed.dir, `${altBaseName}${parsed.ext}`);
 }
 
-function checkForUpdates() {
-    exec('git pull', { cwd: __dirname }, (err, stdout, stderr) => {
-        if (err) {
-            console.error('Failed to pull updates:', err.message);
-        } else {
-            console.log('Git pull result:', stdout.trim());
-        }
-    });
-}
+const sharedStore = new SharedHomebrewStore(process.env.HOMEBREW_STORAGE_DIR || path.join(__dirname, ".shared-homebrew"));
+const sharedHandler = createSharedHomebrewHandler(sharedStore);
+const server = http.createServer(async (req, res) => {
+	try {
+		if (await authHandler(req, res)) return;
+	} catch {
+		res.writeHead(503, {"Cache-Control": "no-store"});
+		res.end("Accounts are temporarily unavailable.");
+		return;
+	}
+	if (await sharedHandler(req, res)) return;
+	const parsedUrl = new URL(req.url, "http://localhost");
+	let pathname = parsedUrl.pathname;
+	// Decode encoded URL segments so files with spaces/special chars resolve correctly.
+	try {
+		pathname = decodeURIComponent(pathname);
+	} catch {
+		// Keep original pathname if decoding fails.
+	}
 
-function generateAnalyticsHTML(analytics) {
-    const topSessions = analytics.topSessions.map(s => `
-        <tr>
-            <td>${s.ip}</td>
-            <td>${s.pageViews}</td>
-            <td>${s.durationMinutes} min</td>
-            <td>${new Date(s.firstVisit).toLocaleString()}</td>
-        </tr>
-    `).join('');
+	let filePath = path.join(__dirname, pathname === "/" ? "index.html" : pathname);
+	const privateDirectories = [sharedStore.directory, authConfig.directory];
+	const isPrivate = candidate => privateDirectories.some(directory => candidate === directory || candidate.startsWith(directory + path.sep))
+        || candidate === path.resolve(authConfigFile);
+	// Auth configuration, account databases, and dotfiles must never become static downloads.
+	const relativePath = path.relative(__dirname, filePath);
+	if (relativePath.startsWith("..") || path.isAbsolute(relativePath) || pathname.includes("\\")
+        || pathname.split("/").some(part => part.startsWith("."))
+        || isPrivate(path.resolve(filePath))
+		|| ["node_modules", "server", "scripts", "test", "backups", "exports"].includes(relativePath.split(path.sep)[0])
+		|| relativePath === "LOCAL-SETUP.md"
+		|| /^analytics(?:\.[^/]*)?\.json$/i.test(relativePath)
+		|| /\.(?:sqlite|db)(?:-(?:wal|shm))?$|\.(?:backup|bak|pem|key)$/i.test(relativePath)) {
+		res.writeHead(404); res.end("File not found"); return;
+	}
+	let realFilePath;
+	try { realFilePath = fs.realpathSync(filePath); } catch { /* Missing files are handled below. */ }
+	if (realFilePath && isPrivate(realFilePath)) {
+		res.writeHead(404); res.end("File not found"); return;
+	}
 
-    return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>5etools Analytics</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 20px;
-                background: #f5f5f5;
-            }
-            .container {
-                max-width: 1000px;
-                margin: 0 auto;
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            h1 {
-                color: #333;
-                border-bottom: 3px solid #007bff;
-                padding-bottom: 10px;
-            }
-            .stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin: 20px 0;
-            }
-            .stat-card {
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 5px;
-                border-left: 4px solid #007bff;
-            }
-            .stat-value {
-                font-size: 24px;
-                font-weight: bold;
-                color: #007bff;
-            }
-            .stat-label {
-                color: #666;
-                font-size: 12px;
-                margin-top: 5px;
-            }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-            }
-            th {
-                background: #007bff;
-                color: white;
-                padding: 10px;
-                text-align: left;
-            }
-            td {
-                padding: 10px;
-                border-bottom: 1px solid #ddd;
-            }
-            tr:hover {
-                background: #f5f5f5;
-            }
-            .refresh {
-                display: inline-block;
-                margin-bottom: 15px;
-                padding: 8px 15px;
-                background: #007bff;
-                color: white;
-                text-decoration: none;
-                border-radius: 5px;
-                border: none;
-                cursor: pointer;
-            }
-            .refresh:hover {
-                background: #0056b3;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>📊 5etools Analytics</h1>
-            <button class="refresh" onclick="location.reload()">🔄 Refresh</button>
-            
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-value">${analytics.totalVisits}</div>
-                    <div class="stat-label">Total Clicks</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${analytics.uniqueVisitors}</div>
-                    <div class="stat-label">Unique Visitors</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${analytics.avgSessionDuration}</div>
-                    <div class="stat-label">Avg. Session Duration</div>
-                </div>
-            </div>
+	// Get the file extension
+	const ext = path.extname(filePath);
 
-            <h2>Top Sessions</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Visitor IP</th>
-                        <th>Page Views</th>
-                        <th>Time Spent</th>
-                        <th>First Visit</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${topSessions || '<tr><td colspan="4" style="text-align:center; color:#999;">No data yet</td></tr>'}
-                </tbody>
-            </table>
+	// Set content type based on extension
+	let contentType = "text/html";
+	switch (ext) {
+		case ".js":
+			contentType = "text/javascript";
+			break;
+		case ".css":
+			contentType = "text/css";
+			break;
+		case ".json":
+			contentType = "application/json";
+			break;
+		case ".png":
+			contentType = "image/png";
+			break;
+		case ".jpg":
+		case ".jpeg":
+			contentType = "image/jpeg";
+			break;
+		case ".gif":
+			contentType = "image/gif";
+			break;
+		case ".svg":
+			contentType = "image/svg+xml";
+			break;
+		case ".ico":
+			contentType = "image/x-icon";
+			break;
+		case ".xml":
+			contentType = "application/xml";
+			break;
+		case ".pdf":
+			contentType = "application/pdf";
+			break;
+		default:
+			contentType = "text/html";
+	}
 
-            <p style="margin-top: 30px; color: #666; font-size: 12px;">
-                ℹ️ Analytics are stored locally. IPs are anonymized for privacy.
-            </p>
-        </div>
-    </body>
-    </html>
-    `;
-}
+	fs.readFile(filePath, (err, data) => {
+		if (err) {
+			if (err.code !== "ENOENT") {
+				res.writeHead(500);
+				res.end("Server error");
+				return;
+			}
 
-const server = http.createServer((req, res) => {
-    const parsedUrl = new URL(req.url, 'http://localhost');
-    let pathname = parsedUrl.pathname;
-    // Decode encoded URL segments so files with spaces/special chars resolve correctly.
-    try {
-        pathname = decodeURIComponent(pathname);
-    } catch {
-        // Keep original pathname if decoding fails.
-    }
+			// Some image packs use ASCII filenames where source data contains accented names.
+			const fallbackFilePath = getFallbackFilePath(filePath);
+			if (!fallbackFilePath) {
+				res.writeHead(404);
+				res.end("File not found");
+				return;
+			}
 
-    // Handle analytics endpoint
-    if (pathname === '/analytics') {
-        const analytics = getAnalytics();
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(generateAnalyticsHTML(analytics));
-        return;
-    }
+			fs.readFile(fallbackFilePath, (fallbackErr, fallbackData) => {
+				if (fallbackErr) {
+					res.writeHead(404);
+					res.end("File not found");
+					return;
+				}
 
-    // Track the visit
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
-    try {
-        trackVisit(ip);
-    } catch (err) {
-        console.error('Error tracking visit:', err.message);
-    }
+				data = fallbackData;
+				const etag = `"${crypto.createHash("md5").update(data).digest("hex")}"`;
+				if (req.headers["if-none-match"] === etag) {
+					res.writeHead(304);
+					res.end();
+					return;
+				}
 
-    let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
+				const isHtml = ext === ".html" || ext === "";
+				const cacheControl = res.hasHeader("Cache-Control") ? res.getHeader("Cache-Control") : isHtml
+					? "no-cache"
+					: /\.(?:js|css|json)$/.test(filePath) ? "no-cache" : "public, max-age=604800";
 
-    // Get the file extension
-    const ext = path.extname(filePath);
+				const headers = {
+					"Content-Type": contentType,
+					"Cache-Control": cacheControl,
+					"ETag": etag,
+				};
 
-    // Set content type based on extension
-    let contentType = 'text/html';
-    switch (ext) {
-        case '.js':
-            contentType = 'text/javascript';
-            break;
-        case '.css':
-            contentType = 'text/css';
-            break;
-        case '.json':
-            contentType = 'application/json';
-            break;
-        case '.png':
-            contentType = 'image/png';
-            break;
-        case '.jpg':
-        case '.jpeg':
-            contentType = 'image/jpeg';
-            break;
-        case '.gif':
-            contentType = 'image/gif';
-            break;
-        case '.svg':
-            contentType = 'image/svg+xml';
-            break;
-        case '.ico':
-            contentType = 'image/x-icon';
-            break;
-        case '.xml':
-            contentType = 'application/xml';
-            break;
-        case '.pdf':
-            contentType = 'application/pdf';
-            break;
-        default:
-            contentType = 'text/html';
-    }
+				const compressible = /json|javascript|css|html|xml|svg|text/.test(contentType);
+				const acceptsGzip = /gzip/.test(req.headers["accept-encoding"] || "");
 
-    fs.readFile(filePath, (err, data) => {
-        if (err) {
-            if (err.code !== 'ENOENT') {
-                res.writeHead(500);
-                res.end('Server error');
-                return;
-            }
+				if (compressible && acceptsGzip) {
+					zlib.gzip(data, (gzErr, compressed) => {
+						if (gzErr) {
+							res.writeHead(200, headers);
+							res.end(data);
+							return;
+						}
+						res.writeHead(200, { ...headers, "Content-Encoding": "gzip" });
+						res.end(compressed);
+					});
+				} else {
+					res.writeHead(200, headers);
+					res.end(data);
+				}
+			});
+			return;
+		}
 
-            // Some image packs use ASCII filenames where source data contains accented names.
-            const fallbackFilePath = getFallbackFilePath(filePath);
-            if (!fallbackFilePath) {
-                res.writeHead(404);
-                res.end('File not found');
-                return;
-            }
+		// ETag for conditional requests
+		const etag = `"${crypto.createHash("md5").update(data).digest("hex")}"`;
+		if (req.headers["if-none-match"] === etag) {
+			res.writeHead(304);
+			res.end();
+			return;
+		}
 
-            fs.readFile(fallbackFilePath, (fallbackErr, fallbackData) => {
-                if (fallbackErr) {
-                    res.writeHead(404);
-                    res.end('File not found');
-                    return;
-                }
+		// Revalidate application code so clients receive sharing and persistence fixes.
+		const isHtml = ext === ".html" || ext === "";
+		const cacheControl = res.hasHeader("Cache-Control") ? res.getHeader("Cache-Control") : isHtml
+			? "no-cache"
+			: /\.(?:js|css|json)$/.test(filePath) ? "no-cache" : "public, max-age=604800";
 
-                data = fallbackData;
-                const etag = `"${crypto.createHash('md5').update(data).digest('hex')}"`;
-                if (req.headers['if-none-match'] === etag) {
-                    res.writeHead(304);
-                    res.end();
-                    return;
-                }
+		const headers = {
+			"Content-Type": contentType,
+			"Cache-Control": cacheControl,
+			"ETag": etag,
+		};
 
-                const isHtml = ext === '.html' || ext === '';
-                const cacheControl = isHtml
-                    ? 'public, max-age=300'
-                    : 'public, max-age=604800';
+		// Gzip for text-based types
+		const compressible = /json|javascript|css|html|xml|svg|text/.test(contentType);
+		const acceptsGzip = /gzip/.test(req.headers["accept-encoding"] || "");
 
-                const headers = {
-                    'Content-Type': contentType,
-                    'Cache-Control': cacheControl,
-                    'ETag': etag,
-                };
-
-                const compressible = /json|javascript|css|html|xml|svg|text/.test(contentType);
-                const acceptsGzip = /gzip/.test(req.headers['accept-encoding'] || '');
-
-                if (compressible && acceptsGzip) {
-                    zlib.gzip(data, (gzErr, compressed) => {
-                        if (gzErr) {
-                            res.writeHead(200, headers);
-                            res.end(data);
-                            return;
-                        }
-                        res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip' });
-                        res.end(compressed);
-                    });
-                } else {
-                    res.writeHead(200, headers);
-                    res.end(data);
-                }
-            });
-            return;
-        }
-
-        // ETag for conditional requests
-        const etag = `"${crypto.createHash('md5').update(data).digest('hex')}"`;
-        if (req.headers['if-none-match'] === etag) {
-            res.writeHead(304);
-            res.end();
-            return;
-        }
-
-        // Long cache for versioned/immutable assets; shorter for HTML
-        const isHtml = ext === '.html' || ext === '';
-        const cacheControl = isHtml
-            ? 'public, max-age=300'           // 5 min for HTML
-            : 'public, max-age=604800';        // 7 days for JS/CSS/JSON/fonts/etc.
-
-        const headers = {
-            'Content-Type': contentType,
-            'Cache-Control': cacheControl,
-            'ETag': etag,
-        };
-
-        // Gzip for text-based types
-        const compressible = /json|javascript|css|html|xml|svg|text/.test(contentType);
-        const acceptsGzip = /gzip/.test(req.headers['accept-encoding'] || '');
-
-        if (compressible && acceptsGzip) {
-            zlib.gzip(data, (gzErr, compressed) => {
-                if (gzErr) {
-                    res.writeHead(200, headers);
-                    res.end(data);
-                    return;
-                }
-                res.writeHead(200, { ...headers, 'Content-Encoding': 'gzip' });
-                res.end(compressed);
-            });
-        } else {
-            res.writeHead(200, headers);
-            res.end(data);
-        }
-    });
+		if (compressible && acceptsGzip) {
+			zlib.gzip(data, (gzErr, compressed) => {
+				if (gzErr) {
+					res.writeHead(200, headers);
+					res.end(data);
+					return;
+				}
+				res.writeHead(200, { ...headers, "Content-Encoding": "gzip" });
+				res.end(compressed);
+			});
+		} else {
+			res.writeHead(200, headers);
+			res.end(data);
+		}
+	});
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-    const interfaces = os.networkInterfaces();
-    let localIP = 'localhost';
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if (iface.family === 'IPv4' && !iface.internal) {
-                localIP = iface.address;
-                break;
-            }
-        }
-        if (localIP !== 'localhost') break;
-    }
-    console.log(`Server running at http://localhost:${PORT}/ and http://${localIP}:${PORT}/`);
-    checkForUpdates();
-    setInterval(checkForUpdates, 1209600000); // Check for updates every two weeks
+server.listen(PORT, "0.0.0.0", () => {
+	const interfaces = os.networkInterfaces();
+	let localIP = "localhost";
+	for (const name of Object.keys(interfaces)) {
+		for (const iface of interfaces[name]) {
+			if (iface.family === "IPv4" && !iface.internal) {
+				localIP = iface.address;
+				break;
+			}
+		}
+		if (localIP !== "localhost") break;
+	}
+	console.log(`Server running at http://localhost:${PORT}/ and http://${localIP}:${PORT}/`);
 });

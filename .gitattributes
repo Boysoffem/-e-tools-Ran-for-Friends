@@ -29,3 +29,5 @@ Dockerfile                 text eol=lf
 *.pdf                      -text
 *.woff2                    -text
 *.otf                      -text
+js/homebrew/schema-validator.js -whitespace linguist-generated=true
+lib/pdfjs/** -whitespace linguist-vendored=true

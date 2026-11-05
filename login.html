@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="referrer" content="same-origin">
+	<meta name="robots" content="noindex">
+	<title>Sign up / Log in · 5etools for Friends</title>
+	<link rel="icon" href="favicon.svg" type="image/svg+xml">
+	<link rel="stylesheet" href="css/account.css">
+	<script type="module" src="js/account.js"></script>
+</head>
+<body>
+	<header class="account-header"><a class="wordmark" href="index.html">5etools <span>for Friends</span></a><a href="managebrew.html">Homebrew Workshop</a></header>
+	<main class="account-main">
+		<a class="back-link" href="index.html">← Back to the site</a>
+		<article class="account-card">
+			<p class="eyebrow">Your seat at the table</p>
+			<h1 id="account-title">Sign up / Log in</h1>
+			<p class="lead">Browse, create, and share homebrew with or without an account.</p>
+			<p id="account-status" class="status" role="status" aria-live="polite">Checking sign-in options…</p>
+			<section id="signed-out" hidden>
+				<p>Your first Google or GitHub sign-in creates your account. Use the same option to log in again.</p>
+				<form id="signin-form" method="post">
+					<label class="consent"><input type="checkbox" name="consent" value="1" required><span>I agree to share my name and verified email with this site's administrator, who can see them in a private account list and receive them in a private new-account email report.</span></label>
+					<div class="provider-buttons">
+						<button type="submit" formaction="/auth/google/start" data-provider="google" disabled><span class="provider-icon" aria-hidden="true">G</span>Continue with Google</button>
+						<button type="submit" formaction="/auth/github/start" data-provider="github" disabled><span class="provider-icon" aria-hidden="true">GH</span>Continue with GitHub</button>
+					</div>
+				</form>
+				<p id="provider-note" class="muted"></p>
+			</section>
+			<section id="signed-in" hidden>
+				<dl class="profile"><dt>Name</dt><dd id="profile-name"></dd><dt>Email</dt><dd id="profile-email"></dd><dt>Signed in with</dt><dd id="profile-provider"></dd></dl>
+				<div class="account-actions"><a id="admin-link" class="primary-link" href="admin-accounts.html" hidden>Open private account list</a><button type="button" id="signout">Sign out</button></div>
+			</section>
+			<a id="canonical-link" class="primary-link" hidden>Open sign-in on the public site</a>
+			<a class="guest-link" href="managebrew.html">Continue to Homebrew Workshop →</a>
+		</article>
+		<section class="privacy-note" id="privacy">
+			<h2>A small, optional account</h2>
+			<p>When you sign in, this site saves your provider's account ID, display name, verified email (when available), first and latest sign-in dates, and sign-in count. Only you and the site administrator can view your account details on this site. The administrator can receive a weekly email listing new accounts, their names, verified emails, providers, and creation dates. The configured email service processes those reports to deliver them. Email addresses stay out of the shared homebrew library.</p>
+			<p>A session cookie keeps you signed in for up to seven days. A temporary cookie completes sign-in and expires after ten minutes. Google and GitHub handle your password; this site doesn't receive it or store their access tokens.</p>
+			<p>Your account record stays in the administrator's private list after you sign out. Contact the site owner to remove it. Signing in does not sync your unfinished drafts or other browser settings.</p>
+		</section>
+		<noscript><p>JavaScript is needed to sign in. You can still <a href="index.html">browse the site</a>.</p></noscript>
+	</main>
+</body>
+</html>

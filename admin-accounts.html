@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="referrer" content="same-origin">
+	<meta name="robots" content="noindex">
+	<title>Private account list · 5etools for Friends</title>
+	<link rel="icon" href="favicon.svg" type="image/svg+xml">
+	<link rel="stylesheet" href="css/account.css">
+	<script type="module" src="js/admin-accounts.js"></script>
+</head>
+<body>
+	<header class="account-header"><a class="wordmark" href="index.html">5etools <span>for Friends</span></a><a href="login.html">My account</a></header>
+	<main class="admin-main">
+		<a class="back-link" href="login.html">← My account</a>
+		<section class="account-card">
+			<p class="eyebrow">Administrator only</p>
+			<h1>Private account list</h1>
+			<p class="lead">People who chose to sign in. Only verified email addresses are saved.</p>
+			<p id="admin-status" class="status" role="status" aria-live="polite">Loading accounts…</p>
+			<p id="report-status" class="muted" role="status" aria-live="polite"></p>
+			<div class="table-scroll" tabindex="0" aria-label="Private accounts table">
+				<table><thead><tr><th scope="col">Name</th><th scope="col">Verified email</th><th scope="col">Provider</th><th scope="col">First sign-in</th><th scope="col">Last sign-in</th><th scope="col">Sign-ins</th></tr></thead><tbody id="accounts"></tbody></table>
+			</div>
+			<div class="pagination"><button id="previous" disabled>Previous</button><span id="page-number"></span><button id="next" disabled>Next</button><button id="refresh">Refresh</button></div>
+			<p class="muted">Google and GitHub accounts are listed separately, even when they share an email. This list is never added to public homebrew.</p>
+		</section>
+	</main>
+</body>
+</html>

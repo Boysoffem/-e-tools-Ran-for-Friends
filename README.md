@@ -7,7 +7,8 @@ Custom self-hosted deployment of 5etools, synced with the official mirror source
 - Keep local customizations while tracking upstream 5etools updates
 - Provide stable local access for game sessions
 - Provide optional remote access for players via tunnel
-- Include lightweight local analytics and operational scripts
+- Create and share homebrew, with browser-based PDF review
+- Offer optional Google/GitHub accounts and private administrator reports
 
 ## Quick Start
 
@@ -50,6 +51,9 @@ npm run audit:images
 - Upstream source: https://github.com/5etools-mirror-3/5etools-src
 - This repo may contain local operational scripts for personal hosting workflows
 - Token/image handling supports URL-encoded and accented-name asset fallbacks in the local server
+- [Setup](README-SETUP.md), [homebrew and PDF review](HOMEBREW-WORKSHOP.md), [optional login](LOGIN-SETUP.md), and [weekly administrator reports](EMAIL-REPORTS.md)
+- [Publishing and private data](PUBLISHING.md): configuration, accounts, reports, and user homebrew stay outside Git
+- Accounts and sharing require the Node server. GitHub Pages only serves static files; pushing this repository runs checks rather than deploying the server there.
 
 ## Support
 

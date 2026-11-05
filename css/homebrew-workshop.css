@@ -1,0 +1,49 @@
+.hb-workshop { border: 1px solid #8886; border-radius: 12px; margin: 16px 0 32px; padding: 24px; }
+.hb-workshop [hidden] { display: none !important; }
+.hb-header { display: flex; justify-content: space-between; gap: 20px; align-items: start; }
+.hb-header h2 { margin: 4px 0 8px; font-size: 28px; }
+.hb-eyebrow { font-size: 11px; letter-spacing: .16em; opacity: .7; margin: 0; }
+.hb-tabs { display: flex; gap: 8px; margin: 20px 0; border-bottom: 1px solid #8886; padding-bottom: 12px; }
+.hb-tabs button { background: transparent; border: 1px solid #8888; border-radius: 6px; padding: 10px 18px; color: inherit; font: inherit; }
+.hb-tabs button[aria-selected=true] { background: #235b89; color: white; border-color: #235b89; }
+.hb-workshop .hb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.hb-workshop label { display: block; font-weight: 500; margin: 0; }
+.hb-workshop label > .form-control { margin-top: 5px; width: 100%; }
+.hb-workshop textarea { resize: vertical; }
+.hb-wide { grid-column: 1 / -1; }
+.hb-source { border: 1px solid #8885; border-radius: 6px; padding: 12px; margin-bottom: 20px; }
+.hb-source[open] summary { margin-bottom: 14px; }
+.hb-workshop summary { cursor: pointer; font-weight: 600; }
+.hb-workshop fieldset { border: 1px solid #8885; border-radius: 8px; padding: 16px; margin: 20px 0; min-width: 0; }
+.hb-workshop legend { color: inherit; width: auto; font-size: 16px; border: 0; margin: 0; padding: 0 6px; }
+.hb-workshop .hb-check { display: flex; gap: 7px; align-items: center; font-weight: 400; }
+.hb-checks { display: flex; flex-wrap: wrap; gap: 14px; padding-top: 8px; }
+.hb-feature { padding: 14px; margin-bottom: 12px; border-radius: 6px; border: 1px dashed #8887; }
+.hb-feature button { margin-top: 8px; }
+.hb-help, .hb-footer { font-size: 12px; opacity: .8; margin: 10px 0 0; }
+.hb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; }
+.hb-result { margin-top: 22px; border-top: 1px solid #8886; padding-top: 10px; }
+.hb-code { font: 12px/1.5 monospace; margin: 10px 0; }
+.hb-message, .hb-preview-text { white-space: pre-wrap; overflow-wrap: anywhere; background: transparent; color: inherit; border: 0; font: inherit; padding: 8px 0; }
+.hb-message { border-left: 3px solid #578ab4; padding-left: 12px; }
+.hb-preview-text { max-height: 220px; overflow: auto; font-size: 13px; }
+.hb-book-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; }
+.hb-queue { max-height: 650px; overflow-y: auto; border: 1px solid #8886; padding: 8px; border-radius: 6px; }
+.hb-queue button { width: 100%; text-align: left; margin-bottom: 6px; padding: 10px; border: 1px solid #8885; border-radius: 4px; background: transparent; color: inherit; }
+.hb-queue button[aria-current=true] { border-color: #578ab4; background: #578ab422; }
+.hb-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.hb-compare textarea { min-height: 320px; }
+.hb-pdf-canvas { max-width: 100%; height: auto; border: 1px solid #8885; }
+.hb-footer { border-top: 1px solid #8885; padding-top: 12px; }
+@media (max-width: 800px) { .hb-workshop { padding: 14px; } .hb-book-layout, .hb-compare { grid-template-columns: 1fr; } .hb-queue { max-height: 220px; } .hb-header { flex-direction: column; } }
+.hb-workshop .form-control { border: 1px solid #8889; border-radius: 5px; padding: 7px 9px; min-height: 36px; background: transparent; color: inherit; font: inherit; width: 100%; }
+.hb-workshop select.form-control option { color: initial; background: Canvas; }
+.hb-workshop input:focus-visible, .hb-workshop select:focus-visible, .hb-workshop textarea:focus-visible, .hb-workshop button:focus-visible { outline: 2px solid #578ab4; outline-offset: 2px; }
+.hb-preview-card { border: 1px solid #8885; padding: 14px; border-radius: 6px; margin: 12px 0; }
+.hb-preview-card h4 { margin: 0 0 8px; }
+.hb-preview-card .hb-help { margin: 0 0 12px; }
+.hb-preview-table { border-collapse: collapse; margin: 12px 0; max-width: 100%; }
+.hb-preview-table th, .hb-preview-table td { border: 1px solid #8886; padding: 5px 10px; }
+@media (max-width: 800px) {
+	.hb-workshop ~ #manager > .ve-mobile-sm__flex-col > .ve-flex-v-center { flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 100%; }
+}

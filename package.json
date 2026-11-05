@@ -19,6 +19,7 @@
 		"gen:pages": "node node/generate-pages.js",
 		"clean-jsons": "node node/clean-jsons.js",
 		"test:js": "eslint .",
+		"test:privacy": "node scripts/check-publish-privacy.mjs",
 		"lint:js": "npm run test:js -- --fix",
 		"lint:js:fast": "lint-js-changed --additional-root node_",
 		"lint:js:single": "eslint -- ",
@@ -54,7 +55,18 @@
 		"spellcheck:check-data:fast": "node node/spellcheck.js --fast",
 		"spellcheck:trust-data": "node node/spellcheck.js --trust",
 		"spellcheck:trust-data:fast": "node node/spellcheck.js --fast --trust",
-		"prettier:css": "prettier scss/**/*.scss --log-level warn"
+		"prettier:css": "prettier scss/**/*.scss --log-level warn",
+		"test:homebrew": "node --test test/quickbrew/*.test.mjs",
+		"test:homebrew:browser": "node test/quickbrew/browser-smoke.mjs",
+		"build:homebrew-assets": "node scripts/build-homebrew-assets.mjs",
+		"test:homebrew:shared": "node test/quickbrew/shared-browser.mjs",
+		"auth:setup": "node scripts/setup-auth.mjs",
+		"auth:check": "node scripts/setup-auth.mjs --check",
+		"auth:accounts": "node scripts/auth-accounts.mjs",
+		"test:auth": "node --test test/auth/*.test.mjs",
+		"test:auth:browser": "node test/auth/browser.mjs",
+		"auth:email-setup": "node scripts/setup-auth.mjs --email",
+		"auth:email-verify": "node scripts/setup-auth.mjs --email-verify"
 	},
 	"repository": {
 		"type": "git",
@@ -77,6 +89,8 @@
 		"http-server": "^14.1.1",
 		"jest": "^30.2.0",
 		"json-source-map": "^0.6.1",
+		"pdfjs-dist": "6.4.299",
+		"playwright": "1.64.1",
 		"prettier": "^3.8.1",
 		"probe-image-size": "^7.2.3",
 		"readline-sync": "^1.4.10",
@@ -95,5 +109,9 @@
 	"directories": {
 		"lib": "lib",
 		"test": "test"
+	},
+	"dependencies": {
+		"jose": "6.2.15",
+		"nodemailer": "10.3.1"
 	}
 }

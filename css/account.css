@@ -1,0 +1,46 @@
+:root { color-scheme: light dark; --paper: #f6f3ed; --card: #fffefa; --ink: #2e2925; --muted: #6d655d; --line: #ddd5c8; --accent: #873b43; --soft: #f2e9de; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 system-ui, sans-serif; }
+a { color: var(--accent); text-underline-offset: 4px; }
+a:hover { text-decoration-thickness: 2px; }
+button, input { font: inherit; }
+button, .primary-link { border: 1px solid var(--line); border-radius: 8px; padding: 11px 18px; color: var(--ink); background: var(--card); cursor: pointer; text-decoration: none; font-weight: 600; }
+button:hover:enabled { border-color: var(--accent); background: var(--soft); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.account-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px max(24px, calc((100vw - 1120px) / 2)); background: var(--card); border-bottom: 1px solid var(--line); }
+.wordmark { color: var(--ink); font-family: Georgia, serif; font-size: 26px; font-weight: 700; text-decoration: none; }
+.wordmark span { font: 12px system-ui, sans-serif; color: var(--muted); margin-left: 8px; white-space: nowrap; }
+.account-main { max-width: 670px; margin: 40px auto; padding: 0 20px; }
+.admin-main { max-width: 1160px; margin: 40px auto; padding: 0 20px; }
+.back-link { display: inline-block; margin-bottom: 20px; font-size: 14px; }
+.account-card { background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 12px; padding: 32px; box-shadow: 0 8px 28px #362c2010; }
+.eyebrow { text-transform: uppercase; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .14em; margin: 0 0 12px; }
+h1 { font-family: Georgia, serif; font-size: clamp(28px, 5vw, 38px); line-height: 1.2; margin: 0 0 16px; }
+h2 { font-size: 16px; }
+.lead { color: var(--muted); margin-bottom: 24px; }
+.status { background: var(--soft); border-radius: 6px; padding: 12px 14px; font-size: 14px; overflow-wrap: anywhere; }
+.consent { display: flex; align-items: flex-start; gap: 12px; margin: 24px 0; font-size: 14px; cursor: pointer; }
+.consent input { flex-shrink: 0; width: 19px; height: 19px; margin-top: 3px; accent-color: var(--accent); }
+.provider-buttons { display: grid; gap: 12px; }
+.provider-buttons button { width: 100%; display: flex; align-items: center; justify-content: center; gap: 14px; }
+.provider-icon { display: inline-flex; justify-content: center; align-items: center; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; font-size: 12px; }
+.guest-link { display: block; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); text-align: center; font-size: 14px; }
+.muted, .privacy-note { color: var(--muted); font-size: 13px; }
+.privacy-note { padding: 12px 12px 0; }
+.profile { display: grid; grid-template-columns: auto 1fr; gap: 12px 24px; margin: 24px 0; font-size: 14px; }
+.profile dt { color: var(--muted); }
+.profile dd { margin: 0; overflow-wrap: anywhere; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.primary-link { display: inline-block; background: var(--accent); color: #fff; }
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 14px 12px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; min-width: 90px; }
+th { color: var(--muted); font-weight: 600; }
+th:first-child, td:first-child { min-width: 140px; }
+th:nth-child(2), td:nth-child(2) { min-width: 200px; }
+th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) { min-width: 160px; }
+.pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 22px; font-size: 13px; }
+@media (max-width: 520px) { .account-header { padding: 14px 20px; } .account-header > a:last-child { font-size: 12px; } .wordmark span { display: block; margin-left: 0; } .account-card { padding: 24px 20px; } .account-main, .admin-main { margin-top: 24px; } .profile { grid-template-columns: 1fr; gap: 4px; } .profile dd { margin-bottom: 12px; } }
+@media (prefers-color-scheme: dark) { :root { --paper: #201f20; --card: #292729; --ink: #efebe6; --muted: #beb7b0; --line: #484047; --accent: #bf6f7b; --soft: #372c30; } .primary-link { background: #873b43; } }
