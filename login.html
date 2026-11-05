@@ -33,6 +33,13 @@
 			<section id="signed-in" hidden>
 				<dl class="profile"><dt>Name</dt><dd id="profile-name"></dd><dt>Email</dt><dd id="profile-email"></dd><dt>Signed in with</dt><dd id="profile-provider"></dd></dl>
 				<div class="account-actions"><a id="admin-link" class="primary-link" href="admin-accounts.html" hidden>Open private account list</a><button type="button" id="signout">Sign out</button></div>
+				<section id="browsing-history" class="browsing-history" aria-labelledby="history-title" hidden>
+					<h2 id="history-title">Your browsing history</h2>
+					<p class="muted">Your last 100 pages and entries, saved only in this browser for this account. This list is not sent to the administrator or included in email reports. It does not sync to other devices. On a shared computer, use your own browser profile.</p>
+					<div class="account-actions"><button type="button" id="history-pause" aria-pressed="false">Pause history</button><button type="button" id="history-clear">Clear history</button></div>
+					<p id="history-status" class="muted" role="status" aria-live="polite"></p>
+					<ol id="history-list" class="history-list"></ol>
+				</section>
 			</section>
 			<a id="canonical-link" class="primary-link" hidden>Open sign-in on the public site</a>
 			<a class="guest-link" href="managebrew.html">Continue to Homebrew Workshop →</a>
@@ -42,6 +49,7 @@
 			<p>When you sign in, this site saves your provider's account ID, display name, verified email (when available), first and latest sign-in dates, and sign-in count. Only you and the site administrator can view your account details on this site. The administrator can receive a weekly email listing new accounts, their names, verified emails, providers, and creation dates. The configured email service processes those reports to deliver them. Email addresses stay out of the shared homebrew library.</p>
 			<p>A session cookie keeps you signed in for up to seven days. A temporary cookie completes sign-in and expires after ten minutes. Google and GitHub handle your password; this site doesn't receive it or store their access tokens.</p>
 			<p>Your account record stays in the administrator's private list after you sign out. Contact the site owner to remove it. Signing in does not sync your unfinished drafts or other browser settings.</p>
+			<p>While signed in, recent pages are saved in this browser so you can find them again under My account. You can pause recording, remove entries, or clear the list there. The list stays on this device after sign-out and reappears when you sign back into the same account. Clearing this site's browser data also removes it. Someone with access to your browser profile can access local data; this feature does not hide normal page requests from the server or hosting service.</p>
 		</section>
 		<noscript><p>JavaScript is needed to sign in. You can still <a href="index.html">browse the site</a>.</p></noscript>
 	</main>

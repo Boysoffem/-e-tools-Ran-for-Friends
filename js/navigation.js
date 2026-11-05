@@ -33,7 +33,7 @@ class NavBar {
 	static _onDomContentLoaded () {
 		NavBar._initElements();
 		NavBar.highlightCurrentPage();
-		import("./account-nav.js?v=20261105-login").then(module => module.initAccountNav(NavBar._navbar)).catch(() => {});
+		import("./account-nav.js?v=20261105-history").then(module => module.initAccountNav(NavBar._navbar)).catch(() => {});
 	}
 
 	static _onLoad () {

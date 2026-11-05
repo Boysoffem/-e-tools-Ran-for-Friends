@@ -1,4 +1,4 @@
-import {AuthStore, randomToken, SESSION_SECONDS} from "./auth-store.js";
+import {AuthStore, hashToken, randomToken, SESSION_SECONDS} from "./auth-store.js";
 import {authorizeUrl, exchangeProfile} from "./auth-providers.js";
 
 function respond (res, status, body) {
@@ -61,7 +61,9 @@ export function createAuthHandler (config, {store: injectedStore, exchange = exc
 				respond(res, 200, {enabled: config.enabled,
 					origin: config.origin,
 					providers: ["google", "github"].map(id => ({id, available: !!ready(id)})),
-					user: account ? {name: account.name, email: account.email, provider: account.provider, admin: !!isAdmin(account)} : null});
+					// A stable, opaque browser namespace, never an access credential.
+					// No browsing history is stored or accepted by the server.
+					user: account ? {name: account.name, email: account.email, provider: account.provider, admin: !!isAdmin(account), historyKey: hashToken(`${account.provider}\0${account.subject}`)} : null});
 				return true;
 			}
 			if (pathname === "/api/auth/accounts" && req.method === "GET") {

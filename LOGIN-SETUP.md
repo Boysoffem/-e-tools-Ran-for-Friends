@@ -89,6 +89,18 @@ Set `AUTH_ENABLED="0"` and restart to turn off accounts and hide the navigation 
 
 ## What is saved
 
+### Personal browsing history
+
+After signing in, **My account → Your browsing history** shows the last 100 distinct pages and entries opened in that browser. Reopening a page moves it to the top. People can pause recording, remove a single entry, or clear their list. Anonymous browsing, account pages, and URL query strings are not recorded.
+
+History lives only in the person's browser storage, separated by Google/GitHub identity. Page titles, links, timestamps, and pause preferences are never uploaded to the account database, admin list, shared library, or email reports. The server supplies an opaque account namespace in the signed-in session response; it does not provide a history API. A session check precedes recording so expired sessions and an account switch in another tab cannot assign an old page to a different person.
+
+History remains locally after sign-out and returns when the same identity signs in again. It does not sync across devices, browser profiles, or site addresses. Clearing browser site data removes it. Blocked storage disables history without blocking sign-in or browsing.
+
+This keeps the saved list off the administrator's server; it is not an encrypted vault. Someone with access to the same browser profile or scripts running on the site can access browser storage. The feature does not hide ordinary page requests from the server, tunnel, or hosting provider. Use separate browser profiles on shared computers. No visitor analytics collection is added.
+
+### Account records and reports
+
 Optional [weekly new-account email reports](EMAIL-REPORTS.md) send new account names, verified emails, providers, and creation dates to the designated administrator only. Use `sh scripts/setup-login.sh --email` to configure the sender. The sign-in notice discloses this use before the person agrees. Reports never email the listed account holders.
 
 After the person agrees and completes sign-in, the private SQLite database saves their provider and account ID, display name, verified email if supplied, first/latest sign-in time, and total sign-ins. Emails are trimmed, lowercased, checked for invalid characters, and never added to public homebrew or ordinary server logs. GitHub contributes only its verified **primary** address; unverified/missing addresses stay blank and cannot grant administrator access by email. No unrelated emails are collected.

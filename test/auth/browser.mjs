@@ -4,6 +4,7 @@ import {mkdtemp, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
+import {checkBrowsingHistory} from "./browser-history.mjs";
 
 const directory = await mkdtemp(path.join(tmpdir(), "five-auth-browser-"));
 const port = 3142;
@@ -120,6 +121,7 @@ try {
 	assert.match((await admin.request.get(`${base}/admin-accounts.html`)).headers()["cache-control"], /no-store/);
 	assert.ok(!JSON.stringify(await (await visitor.request.get(`${base}/api/shared-homebrew`)).json()).includes("@example.com"));
 	console.log("PASS: private data and configuration cannot be downloaded as static files or appear in shared homebrew");
+	await checkBrowsingHistory({admin, visitor, visitorContext, base, login});
 	await visitor.goto(`${base}/login.html`); await visitor.locator("#signout").click();
 	await visitor.locator("#signed-out").waitFor({state: "visible"});
 	assert.equal((await visitor.request.get(`${base}/api/auth/session`).then(it => it.json())).user, null);

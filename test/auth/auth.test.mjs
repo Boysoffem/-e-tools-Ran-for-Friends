@@ -89,7 +89,7 @@ test("Google sign-in persists a private account, hashed session, and sanitized p
 	const cookie = complete.headers.getSetCookie()[0].split(";")[0];
 	const response = await api.request("/api/auth/session", {headers: {Cookie: cookie}});
 	assert.match(response.headers.get("cache-control"), /no-store/);
-	assert.deepEqual((await response.json()).user, {name: "PlayerName", email: "admin@example.com", provider: "google", admin: true});
+	assert.deepEqual((await response.json()).user, {name: "PlayerName", email: "admin@example.com", provider: "google", admin: true, historyKey: hashToken("google\0google-user")});
 	assert.equal(api.store.db.prepare("SELECT token_hash FROM sessions").get().token_hash, hashToken(cookie.split("=")[1]));
 	assert.equal(api.store.db.prepare("SELECT count(*) AS count FROM oauth_states").get().count, 0);
 	assert.equal((await stat(path.join(api.directory, "accounts.sqlite"))).mode & 0o777, 0o600);
@@ -155,6 +155,8 @@ test("repeat sign-ins update one account, separate providers stay separate, and 
 	const profile = {subject: "1001", email: "same@example.com"};
 	const first = await api.complete(await api.start(), profile);
 	const oldCookie = first.headers.getSetCookie()[0].split(";")[0];
+	const firstKey = (await api.request("/api/auth/session", {headers: {Cookie: oldCookie}}).then(it => it.json())).user.historyKey;
+	assert.match(firstKey, /^[a-f0-9]{64}$/);
 	// Repeat through a complete fresh flow, retaining the previous session for rotation.
 	const flow = await api.start();
 	const second = await api.complete(flow, profile, "google", {Cookie: `${flow.cookie}; ${oldCookie}`});
@@ -162,7 +164,12 @@ test("repeat sign-ins update one account, separate providers stay separate, and 
 	assert.equal(api.store.account(oldCookie.split("=")[1]), null);
 	assert.equal(api.store.list().total, 1);
 	assert.equal(api.store.list().accounts[0].login_count, 2);
-	await api.complete(await api.start("github"), profile, "github");
+	const secondCookie = second.headers.getSetCookie()[0].split(";")[0];
+	assert.equal((await api.request("/api/auth/session", {headers: {Cookie: secondCookie}}).then(it => it.json())).user.historyKey, firstKey);
+	const github = await api.complete(await api.start("github"), profile, "github");
+	const githubCookie = github.headers.getSetCookie()[0].split(";")[0];
+	assert.notEqual((await api.request("/api/auth/session", {headers: {Cookie: githubCookie}}).then(it => it.json())).user.historyKey, firstKey);
+	assert.ok(!JSON.stringify(api.store.list()).includes("historyKey"));
 	assert.equal(api.store.list().total, 2);
 	api.store.db.prepare("DELETE FROM accounts WHERE email = ?").run(profile.email);
 	assert.equal(api.store.db.prepare("SELECT count(*) AS count FROM sessions").get().count, 0);
